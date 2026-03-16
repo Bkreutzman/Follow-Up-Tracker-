@@ -1,0 +1,1524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Follow-Up Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#fff5f5; --surface:#ffffff; --surface2:#fff0f0; --border:#ffd6d6;
+  --accent:#e82020; --accent2:#ff6b6b; --text:#2a0a0a; --muted:#b06060;
+  --danger:#e82020; --green:#1a9e5c; --blue:#2563eb;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Mono',monospace;background:var(--bg);color:var(--text);min-height:100vh;font-size:13px;}
+
+/* HEADER */
+header{padding:20px 36px 16px;border-bottom:2px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border-radius:0 0 20px 20px;box-shadow:0 2px 12px rgba(232,32,32,0.08);}
+.logo h1{font-family:'DM Serif Display',serif;font-size:28px;font-weight:400;color:var(--accent);letter-spacing:-0.5px;line-height:1;}
+.logo p{color:var(--muted);font-size:10px;margin-top:3px;letter-spacing:0.08em;text-transform:uppercase;}
+.header-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+
+/* NOTIFICATION BANNER */
+.notif-banner{background:#fff0f0;border-bottom:2px solid var(--border);padding:9px 36px;display:flex;align-items:center;gap:10px;font-size:12px;border-radius:12px;margin:8px 24px;}
+.notif-banner span{color:var(--muted);flex:1;}
+.notif-banner strong{color:var(--accent);}
+
+/* STATS */
+.stats-bar{display:flex;border-bottom:2px solid var(--border);overflow-x:auto;background:var(--surface);gap:4px;padding:8px 16px;}
+.stat{padding:10px 18px;border:2px solid var(--border);border-radius:16px;flex-shrink:0;transition:all 0.15s;background:var(--surface);}
+.stat.clickable{cursor:pointer;}
+.stat.clickable:hover{background:#fff0f0;border-color:var(--accent2);transform:translateY(-1px);}
+.stat.active-filter{background:#fff0f0;border-color:var(--accent);box-shadow:0 2px 8px rgba(232,32,32,0.15);}
+.stat-val{font-family:'DM Serif Display',serif;font-size:22px;line-height:1;color:var(--accent);}
+.stat-label{font-size:10px;text-transform:uppercase;letter-spacing:0.08em;margin-top:2px;color:var(--muted);}
+
+/* DONE THIS WEEK PANEL */
+.done-panel{border-bottom:2px solid var(--border);background:var(--surface);padding:10px 36px;display:none;gap:12px;align-items:flex-start;flex-wrap:wrap;}
+.done-panel.open{display:flex;}
+.done-panel-title{color:var(--green);font-size:10px;text-transform:uppercase;letter-spacing:0.1em;margin-top:2px;white-space:nowrap;}
+.done-chip{background:#f0fff4;border:2px solid #b7efd1;border-radius:20px;padding:3px 12px;font-size:11px;color:var(--green);}
+.done-chip strong{color:#0d6e3a;}
+
+/* TOOLBAR */
+.toolbar{padding:10px 36px;display:flex;gap:7px;align-items:center;border-bottom:2px solid var(--border);background:var(--surface);flex-wrap:wrap;}
+.filter-btn{background:var(--surface);border:2px solid var(--border);color:var(--muted);padding:5px 14px;border-radius:20px;cursor:pointer;font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;transition:all 0.15s;}
+.filter-btn:hover{border-color:var(--accent);color:var(--accent);background:#fff0f0;}
+.filter-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:500;box-shadow:0 2px 8px rgba(232,32,32,0.25);}
+.toolbar-right{margin-left:auto;display:flex;gap:7px;align-items:center;}
+.search-wrap{position:relative;}
+.search-wrap input{background:var(--surface);border:2px solid var(--border);color:var(--text);padding:6px 12px 6px 28px;border-radius:20px;font-family:'DM Mono',monospace;font-size:12px;width:200px;outline:none;transition:all 0.15s;}
+.search-wrap input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(232,32,32,0.1);}
+.search-wrap input::placeholder{color:var(--muted);}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:12px;pointer-events:none;}
+
+/* BUTTONS */
+.btn{background:var(--surface);border:2px solid var(--border);color:var(--muted);padding:6px 14px;border-radius:20px;cursor:pointer;font-family:'DM Mono',monospace;font-size:11px;transition:all 0.15s;white-space:nowrap;}
+.btn:hover{border-color:var(--accent);color:var(--accent);background:#fff0f0;}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:500;box-shadow:0 2px 8px rgba(232,32,32,0.25);}
+.btn-primary:hover{background:#c41010;border-color:#c41010;color:#fff;box-shadow:0 3px 12px rgba(232,32,32,0.35);}
+.btn-green{border-color:var(--green);color:var(--green);}
+.btn-green:hover{background:rgba(26,158,92,0.08);}
+.btn-danger:hover{border-color:var(--danger);color:var(--danger);}
+.btn-sm{padding:3px 10px;font-size:10px;}
+
+/* BULK BAR */
+.bulk-bar{background:#fff0f0;border-bottom:2px solid var(--border);padding:8px 36px;display:none;align-items:center;gap:10px;font-size:11px;}
+.bulk-bar.open{display:flex;}
+.bulk-bar span{color:var(--accent);}
+
+/* TABLE */
+.table-wrap{padding:16px 36px 40px;}
+table{width:100%;border-collapse:separate;border-spacing:0 4px;}
+thead th{text-align:left;padding:6px 12px;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:0.1em;border-bottom:2px solid var(--border);font-weight:400;}
+th.th-chk{width:32px;}
+tbody tr{transition:all 0.15s;cursor:pointer;}
+tbody tr td:first-child{border-radius:12px 0 0 12px;}
+tbody tr td:last-child{border-radius:0 12px 12px 0;}
+tbody tr{background:var(--surface);}
+tbody tr:hover{background:#fff0f0;transform:translateY(-1px);box-shadow:0 2px 10px rgba(232,32,32,0.08);}
+tbody tr.row-overdue td{background:rgba(232,32,32,0.06);}
+tbody tr.row-today td{background:rgba(255,107,107,0.06);}
+tbody tr.row-soon td{background:rgba(255,140,0,0.04);}
+tbody tr.row-done{opacity:0.45;}
+tbody td{padding:11px 12px;vertical-align:middle;border-top:2px solid var(--border);border-bottom:2px solid var(--border);}
+tbody td:first-child{border-left:2px solid var(--border);}
+tbody td:last-child{border-right:2px solid var(--border);}
+
+/* CLIENT GROUP HEADER */
+tr.group-header{cursor:default;}
+tr.group-header:hover{transform:none;box-shadow:none;background:transparent;}
+tr.group-header td{padding:14px 12px 4px;font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--accent);border:none;background:transparent;font-weight:600;}
+.group-toggle{cursor:pointer;user-select:none;display:inline-flex;align-items:center;gap:6px;}
+.group-toggle:hover{color:var(--danger);}
+
+.client-name{font-family:'DM Serif Display',serif;font-size:15px;color:var(--text);}
+.candidate-sub{color:var(--accent2);font-size:10px;margin-top:1px;}
+.contact-sub{color:var(--muted);font-size:10px;margin-top:1px;}
+
+.tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:10px;text-transform:uppercase;letter-spacing:0.07em;font-weight:500;border:1.5px solid;}
+.tag-update{background:#e8f4ff;color:#1a56b0;border-color:#b3d4f7;}
+.tag-feedback{background:#fff3e8;color:#b04a00;border-color:#ffd4a8;}
+.tag-candidate{background:#e8fff4;color:#0d6e3a;border-color:#b7efd1;}
+.tag-interviewing{background:#f0e8ff;color:#6b21a8;border-color:#d8b4fe;}
+.tag-offer{background:#fff8e0;color:#92400e;border-color:#fcd34d;}
+.tag-other{background:#f5f5f5;color:#666;border-color:#ddd;}
+
+.due-date{font-size:11px;}
+.due-overdue{color:var(--danger);font-weight:600;}
+.due-today{color:var(--accent);font-weight:600;}
+.due-soon{color:#c45000;}
+.due-ok{color:var(--muted);}
+
+.pdot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px;}
+.p-high{background:var(--danger);}
+.p-medium{background:var(--accent2);}
+.p-low{background:#ccc;}
+
+.note-preview{color:var(--muted);font-size:11px;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.days-since{font-size:10px;color:var(--muted);margin-top:2px;}
+.row-actions{display:flex;gap:5px;opacity:0;transition:opacity 0.12s;}
+tbody tr:hover .row-actions{opacity:1;}
+
+.recur-badge{font-size:9px;background:#e8f4ff;color:#1a56b0;border:1.5px solid #b3d4f7;border-radius:10px;padding:1px 6px;margin-left:5px;vertical-align:middle;}
+
+input[type=checkbox]{accent-color:var(--accent);width:13px;height:13px;cursor:pointer;}
+
+/* EMPTY */
+.empty{text-align:center;padding:50px 20px;color:var(--muted);}
+.empty-icon{font-size:36px;margin-bottom:10px;opacity:0.35;}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(255,200,200,0.35);z-index:100;align-items:center;justify-content:center;backdrop-filter:blur(6px);}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:2px solid var(--border);border-radius:20px;width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(232,32,32,0.12);}
+.modal-header{padding:20px 24px 14px;border-bottom:2px solid var(--border);display:flex;align-items:center;justify-content:space-between;border-radius:20px 20px 0 0;}
+.modal-header h2{font-family:'DM Serif Display',serif;font-size:19px;font-weight:400;color:var(--accent);}
+.modal-close{background:none;border:2px solid var(--border);color:var(--muted);font-size:16px;cursor:pointer;padding:2px 8px;line-height:1;border-radius:20px;}
+.modal-close:hover{border-color:var(--danger);color:var(--danger);}
+.modal-body{padding:20px 24px;}
+.modal-footer{padding:12px 24px 20px;display:flex;justify-content:flex-end;gap:8px;}
+.field{margin-bottom:15px;}
+.field label{display:block;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:0.09em;margin-bottom:5px;}
+.field input,.field select,.field textarea{width:100%;background:#fff8f8;border:2px solid var(--border);color:var(--text);padding:8px 12px;border-radius:12px;font-family:'DM Mono',monospace;font-size:12px;outline:none;transition:all 0.15s;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(232,32,32,0.1);}
+.field textarea{resize:vertical;min-height:70px;}
+.field select option{background:#fff8f8;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+/* TOAST */
+.toast-container{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:8px;z-index:300;pointer-events:none;}
+.toast{background:var(--surface);border:2px solid var(--border);border-left:4px solid var(--accent);border-radius:16px;padding:11px 14px;min-width:260px;max-width:320px;pointer-events:all;animation:slideIn 0.2s ease;box-shadow:0 4px 16px rgba(232,32,32,0.1);}
+.toast.danger{border-left-color:var(--danger);}
+.toast.success{border-left-color:var(--green);}
+.toast-title{font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px;}
+.toast.danger .toast-title{color:var(--danger);}
+.toast.success .toast-title{color:var(--green);}
+.toast-body{font-size:11px;color:var(--text);line-height:1.5;}
+.toast-close{float:right;background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;margin-left:6px;line-height:1;}
+.toast-close:hover{color:var(--text);}
+@keyframes slideIn{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
+.loading-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:dotPulse 0.8s ease-in-out infinite alternate;}
+@keyframes dotPulse{from{opacity:0.2;transform:scale(0.8)}to{opacity:1;transform:scale(1.2)}}
+
+/* HEALTH SCORE */
+.health{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:3px 10px;border-radius:20px;font-weight:500;border:1.5px solid;}
+.health-red{background:#fff0f0;color:var(--danger);border-color:#ffb3b3;}
+.health-amber{background:#fff8e8;color:#b06000;border-color:#ffd98a;}
+.health-green{background:#e8fff4;color:var(--green);border-color:#b7efd1;}
+
+/* OUTLOOK MODAL */
+.outlook-modal .modal-header h2{color:var(--blue);}
+.email-preview{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:14px 16px;font-size:12px;line-height:1.7;color:var(--text);white-space:pre-wrap;max-height:260px;overflow-y:auto;font-family:'DM Mono',monospace;}
+.email-meta{display:grid;grid-template-columns:60px 1fr;gap:4px 10px;margin-bottom:12px;font-size:11px;}
+.email-meta-label{color:var(--muted);}
+.email-meta-val{color:var(--text);}
+.outlook-status{font-size:11px;margin-top:10px;padding:8px 12px;border-radius:3px;display:none;}
+.outlook-status.ok{background:rgba(71,196,126,0.1);color:var(--green);border:1px solid rgba(71,196,126,0.2);display:block;}
+.outlook-status.err{background:rgba(232,84,71,0.1);color:var(--danger);border:1px solid rgba(232,84,71,0.2);display:block;}
+.ms-btn{background:#0078d4;border-color:#0078d4;color:#fff;font-weight:500;}
+.ms-btn:hover{background:#106ebe;border-color:#106ebe;color:#fff;}
+
+
+@media(max-width:768px){
+  header,.toolbar,.table-wrap,.notif-banner,.bulk-bar,.done-panel{padding-left:14px;padding-right:14px;}
+  .field-row{grid-template-columns:1fr;}
+  thead th:nth-child(5),td:nth-child(5),thead th:nth-child(6),td:nth-child(6){display:none;}
+}
+
+/* ── LOGIN SCREEN ─────────────────────────────────────── */
+#login-screen {
+  position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;
+  justify-content:center;z-index:9999;
+}
+#login-box {
+  background:var(--surface);border:1px solid var(--border);border-radius:20px;
+  padding:48px 40px;width:360px;box-shadow:0 8px 32px rgba(232,32,32,0.10);
+  text-align:center;
+}
+#login-box h1 { font-family:'DM Serif Display',serif;color:var(--accent);font-size:2rem;margin:0 0 4px; }
+#login-box p  { color:var(--muted);font-size:13px;margin:0 0 28px; }
+#login-box input {
+  width:100%;box-sizing:border-box;padding:11px 14px;border:1.5px solid var(--border);
+  border-radius:20px;font-family:'DM Mono',monospace;font-size:14px;
+  background:var(--surface2);color:var(--text);outline:none;margin-bottom:12px;
+  text-align:center;letter-spacing:2px;
+}
+#login-box input:focus { border-color:var(--accent); }
+#login-btn {
+  width:100%;padding:11px;background:var(--accent);color:#fff;border:none;
+  border-radius:20px;font-family:'DM Mono',monospace;font-size:14px;font-weight:700;
+  cursor:pointer;letter-spacing:1px;transition:opacity 0.15s;
+}
+#login-btn:hover { opacity:0.88; }
+#login-error { color:var(--accent);font-size:12px;margin-top:10px;min-height:18px; }
+
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <h1>Follow-Up</h1>
+    <p>Client Reminder Tracker</p>
+  </div>
+  <div class="header-actions">
+    <button class="btn" onclick="exportCSV()">↓ Export CSV</button>
+    <button class="btn ms-btn" id="ms-connect-header-btn" onclick="msLogin()">⬡ Connect Outlook</button>
+    <button class="btn btn-primary" onclick="openModal()">+ New Follow-Up</button>
+  </div>
+</header>
+
+<div id="notif-banner" class="notif-banner" style="display:none">
+  <span>🔔 <strong>Enable reminders</strong> — get notified each day you open this with overdue or due-today items.</span>
+  <button class="btn btn-primary btn-sm" onclick="requestNotifPermission()">Enable</button>
+  <button class="btn btn-sm" onclick="dismissBanner()">Not now</button>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<div class="stats-bar">
+  <div class="stat clickable" id="s-overdue" onclick="setFilter('overdue',null,true)">
+    <div class="stat-val" id="stat-overdue" style="color:var(--danger)">0</div>
+    <div class="stat-label" style="color:var(--danger)">Overdue</div>
+  </div>
+  <div class="stat clickable" id="s-today" onclick="setFilter('today',null,true)">
+    <div class="stat-val" id="stat-today" style="color:var(--accent)">0</div>
+    <div class="stat-label" style="color:var(--accent)">Due Today</div>
+  </div>
+  <div class="stat clickable" id="s-week" onclick="setFilter('week',null,true)">
+    <div class="stat-val" id="stat-week" style="color:var(--accent2)">0</div>
+    <div class="stat-label" style="color:var(--accent2)">This Week</div>
+  </div>
+  <div class="stat">
+    <div class="stat-val" id="stat-total" style="color:var(--muted)">0</div>
+    <div class="stat-label">Total Open</div>
+  </div>
+  <div class="stat clickable" id="s-done-week" onclick="toggleDonePanel()">
+    <div class="stat-val" id="stat-done-week" style="color:var(--green)">0</div>
+    <div class="stat-label" style="color:var(--green)">Done This Week ↕</div>
+  </div>
+</div>
+
+<div class="done-panel" id="done-panel">
+  <div class="done-panel-title">✓ Completed this week</div>
+  <div id="done-panel-items" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+</div>
+
+<div class="bulk-bar" id="bulk-bar">
+  <span id="bulk-count">0 selected</span>
+  <button class="btn btn-sm btn-green" onclick="bulkDone()">✓ Mark Done</button>
+  <button class="btn btn-sm btn-danger" onclick="bulkDelete()">✕ Delete</button>
+  <button class="btn btn-sm" onclick="clearSelection()" style="margin-left:auto">Cancel</button>
+</div>
+
+<div class="toolbar">
+  <button class="filter-btn active" data-filter="all" onclick="setFilter('all',this)">All</button>
+  <button class="filter-btn" data-filter="update" onclick="setFilter('update',this)">Sourcing Updates</button>
+  <button class="filter-btn" data-filter="feedback" onclick="setFilter('feedback',this)">Feedback on Subs</button>
+  <button class="filter-btn" data-filter="candidate" onclick="setFilter('candidate',this)">Interview Requests</button>
+  <button class="filter-btn" data-filter="interviewing" onclick="setFilter('interviewing',this)">Interviewing</button>
+  <button class="filter-btn" data-filter="offer" onclick="setFilter('offer',this)">Offer Stage</button>
+  <button class="filter-btn" data-filter="other" onclick="setFilter('other',this)">Other</button>
+  <button class="filter-btn" data-filter="done" onclick="setFilter('done',this)">Completed</button>
+  <div class="toolbar-right">
+    <button class="btn btn-sm" id="group-btn" onclick="toggleGrouping()">⊞ Group by Client</button>
+    <div class="search-wrap">
+      <span class="search-icon">⌕</span>
+      <input type="text" id="search" placeholder="Search..." oninput="renderTable()">
+    </div>
+  </div>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th class="th-chk"><input type="checkbox" id="chk-all" onchange="toggleSelectAll(this.checked)" title="Select all"></th>
+        <th>Client / Candidate</th>
+        <th>Health</th>
+        <th>Type</th>
+        <th>Due</th>
+        <th>Priority</th>
+        <th>Notes / Activity</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="table-body"></tbody>
+  </table>
+  <div id="empty-state" class="empty" style="display:none">
+    <div class="empty-icon">📋</div>
+    <p style="margin-bottom:14px;">No follow-ups here yet.</p>
+    <button class="btn btn-primary" onclick="openModal()">Add your first follow-up</button>
+  </div>
+</div>
+
+<!-- ADD / EDIT MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-title">New Follow-Up</h2>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-row">
+        <div class="field">
+          <label>Client Name *</label>
+          <input type="text" id="f-client" placeholder="e.g. Acme Corp" list="client-list">
+          <datalist id="client-list"></datalist>
+        </div>
+        <div class="field">
+          <label>Contact Person</label>
+          <input type="text" id="f-contact" placeholder="e.g. Jane Smith">
+        </div>
+      </div>
+      <div class="field">
+        <label>Contact Email <span style="color:var(--muted);font-weight:400;text-transform:none;font-size:9px;">(used to search your inbox for tone matching)</span></label>
+        <input type="email" id="f-contact-email" placeholder="e.g. jane@acmecorp.com">
+      </div>
+      <div class="field">
+        <label>Candidate Name</label>
+        <input type="text" id="f-candidate" placeholder="e.g. Alex Johnson (leave blank if not candidate-specific)">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Type *</label>
+          <select id="f-type" onchange="toggleInterviewField()">
+            <option value="update">Update Client on Sourcing Progress</option>
+            <option value="feedback">Need Feedback on Sub(s)</option>
+            <option value="candidate">Pending Interview Request</option>
+            <option value="interviewing">Interviewing</option>
+            <option value="offer">Offer Stage</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Priority</label>
+          <select id="f-priority">
+            <option value="high">High</option>
+            <option value="medium" selected>Medium</option>
+            <option value="low">Low</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Due Date *</label>
+          <input type="date" id="f-date">
+        </div>
+        <div class="field">
+          <label>Recurring</label>
+          <select id="f-recur">
+            <option value="">None (one-time)</option>
+            <option value="7">Every week</option>
+            <option value="14">Every 2 weeks</option>
+            <option value="30">Every month</option>
+          </select>
+        </div>
+      </div>
+      <div class="field" id="interview-date-field" style="display:none">
+        <label>Interview Request Date</label>
+        <input type="date" id="f-interview-date" placeholder="Date interview was requested">
+      </div>
+      <div class="field">
+        <label>Notes</label>
+        <textarea id="f-notes" placeholder="Context, what to say, key details..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="modal-dupe-btn" onclick="duplicateEditing()" style="margin-right:auto;display:none" title="Duplicate this follow-up">⊕ Duplicate</button>
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveItem()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- SNOOZE MODAL -->
+<div class="modal-overlay" id="snooze-modal">
+  <div class="modal" style="width:300px;">
+    <div class="modal-header">
+      <h2 style="color:var(--accent2)">Snooze Follow-Up</h2>
+      <button class="modal-close" onclick="closeSnooze()">✕</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:8px;">
+      <button class="btn" onclick="snooze(1)">Tomorrow (+1 day)</button>
+      <button class="btn" onclick="snooze(3)">In 3 days</button>
+      <button class="btn" onclick="snooze(7)">Next week (+7 days)</button>
+      <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px;">
+        <div style="color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Custom date</div>
+        <input type="date" id="snooze-custom" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:3px;font-family:'DM Mono',monospace;font-size:12px;outline:none;">
+        <button class="btn btn-primary" style="margin-top:6px;width:100%;" onclick="snoozeCustom()">Set date</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- COMPLETION NOTE MODAL -->
+<div class="modal-overlay" id="done-modal">
+  <div class="modal" style="width:400px;">
+    <div class="modal-header">
+      <h2 style="color:var(--green)">What happened?</h2>
+      <button class="modal-close" onclick="closeDoneModal(false)">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--muted);font-size:11px;margin-bottom:14px;">Add a quick note about the outcome — this gets logged to the follow-up for reference.</p>
+      <div class="field">
+        <label>Outcome Note (optional)</label>
+        <textarea id="done-note-input" placeholder="e.g. Client gave positive feedback, moving to next round. Spoke with Jane." style="min-height:80px;"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeDoneModal(false)">Skip</button>
+      <button class="btn btn-primary" style="background:var(--green);border-color:var(--green);color:var(--bg);" onclick="closeDoneModal(true)">✓ Mark Done</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- OUTLOOK SETUP MODAL -->
+<div class="modal-overlay" id="outlook-modal">
+  <div class="modal outlook-modal" style="width:500px;">
+    <div class="modal-header">
+      <h2>Connect Outlook</h2>
+      <button class="modal-close" onclick="closeOutlookModal()">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Panel A: file:// warning — must run local server first -->
+      <div id="ms-panel-serve" style="display:none;">
+        <p style="color:var(--text);font-size:13px;font-weight:600;margin-bottom:8px;">One-time setup: serve this file via localhost</p>
+        <p style="color:var(--muted);font-size:12px;line-height:1.6;margin-bottom:14px;">
+          Microsoft OAuth requires <code style="color:var(--accent);">http://localhost</code> — it won&#8217;t work from <code>file://</code>. Run this command in Terminal, then reopen the file from the URL shown:
+        </p>
+        <div style="display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:10px 12px;margin-bottom:8px;">
+          <code id="ms-serve-cmd" style="flex:1;font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);word-break:break-all;"></code>
+          <button onclick="copyServeCmd()" style="flex-shrink:0;background:none;border:1px solid var(--border);color:var(--muted);padding:3px 10px;border-radius:3px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;">Copy</button>
+        </div>
+        <p style="color:var(--muted);font-size:11px;line-height:1.5;">
+          Then open <a id="ms-localhost-link" href="http://localhost:8080" target="_blank" style="color:var(--blue);">http://localhost:8080/client-followup-tracker.html</a> and click &#x2B21; Connect Outlook again.
+        </p>
+      </div>
+
+      <!-- Panel B: configure app + sign in (shown on http://localhost) -->
+      <div id="ms-panel-config" style="display:none;">
+        <p style="color:var(--muted);font-size:12px;line-height:1.6;margin-bottom:14px;">
+          Sign in once with Microsoft. Your drafts will appear in Outlook&#8217;s Drafts folder.
+        </p>
+        <div class="field">
+          <label>Azure App Client ID</label>
+          <input type="text" id="ms-client-id" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+        </div>
+        <div class="field">
+          <label>Tenant ID <span style="color:var(--muted);font-weight:400;text-transform:none;">(Azure Portal &#8594; Azure AD &#8594; Overview)</span></label>
+          <input type="text" id="ms-tenant-id" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+        </div>
+        <div class="field" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+          <label>Anthropic API Key <span style="color:var(--muted);font-weight:400;text-transform:none;">(for AI email drafting — <a href="https://console.anthropic.com" target="_blank" style="color:var(--blue);">get one here</a>)</span></label>
+          <input type="password" id="ms-claude-key" placeholder="sk-ant-..." autocomplete="off">
+        </div>
+        <div id="ms-redirect-uri-display" style="display:none;margin-top:4px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:10px 12px;">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:6px;">&#x26A0; Copy this URI and add it in Azure before signing in (Authentication &#8594; Add a platform &#8594; Single-page application):</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <code id="ms-redirect-uri-val" style="flex:1;font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);word-break:break-all;"></code>
+            <button onclick="copyRedirectUri()" style="flex-shrink:0;background:none;border:1px solid var(--border);color:var(--muted);padding:3px 10px;border-radius:3px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;">Copy</button>
+          </div>
+          <div style="font-size:10px;color:var(--muted);margin-top:6px;">Also add <code style="color:var(--accent);">Mail.ReadWrite</code> delegated permission under API permissions.</div>
+          <button onclick="msDoSignIn()" style="margin-top:12px;width:100%;background:#0078d4;color:#fff;border:none;padding:9px;border-radius:4px;font-family:'DM Mono',monospace;font-size:12px;cursor:pointer;font-weight:600;">&#x2B21; Sign In with Microsoft</button>
+        </div>
+        <div id="ms-status" class="outlook-status"></div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeOutlookModal()">Cancel</button>
+      <button class="btn ms-btn" id="ms-connect-btn" onclick="msConnectSave()">Save &amp; Show Redirect URI</button>
+    </div>
+  </div>
+</div>
+
+<!-- EMAIL DRAFT MODAL -->
+<div class="modal-overlay" id="email-modal">
+  <div class="modal" style="width:600px;">
+    <div class="modal-header">
+      <h2 style="color:var(--blue)" id="em-modal-title">Draft Email</h2>
+      <button class="modal-close" onclick="closeEmailModal()">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div id="em-loading" style="display:none;text-align:center;padding:44px 20px;">
+        <div id="em-loading-step" style="color:var(--muted);font-size:12px;margin-bottom:18px;">Writing your draft...</div>
+        <div style="display:flex;justify-content:center;gap:7px;">
+          <div class="loading-dot"></div>
+          <div class="loading-dot" style="animation-delay:0.18s"></div>
+          <div class="loading-dot" style="animation-delay:0.36s"></div>
+        </div>
+      </div>
+      <div id="em-form" style="display:none;">
+        <div id="em-ai-badge" style="display:none;background:rgba(71,168,232,0.08);border:1px solid rgba(71,168,232,0.2);border-radius:3px;padding:7px 10px;font-size:11px;color:var(--blue);margin-bottom:12px;align-items:center;gap:8px;">
+          <span id="em-ai-context">&#x2736; Written using your email history</span>
+          <button id="em-regen-btn" onclick="regenerateEmail()" style="margin-left:auto;background:none;border:1px solid rgba(71,168,232,0.3);color:var(--blue);padding:2px 9px;border-radius:2px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;white-space:nowrap;">&#x21BB; Regenerate</button>
+        </div>
+        <div class="email-meta">
+          <span class="email-meta-label">To:</span>
+          <input type="text" id="em-to" placeholder="recipient@email.com" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:3px;font-family:'DM Mono',monospace;font-size:12px;outline:none;width:100%;">
+          <span class="email-meta-label">Subject:</span>
+          <input type="text" id="em-subject" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:3px;font-family:'DM Mono',monospace;font-size:12px;outline:none;width:100%;">
+        </div>
+        <textarea id="em-body" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:12px;border-radius:4px;font-family:'DM Mono',monospace;font-size:12px;line-height:1.7;min-height:220px;resize:vertical;outline:none;white-space:pre-wrap;"></textarea>
+        <div id="em-status" class="outlook-status"></div>
+        <div style="color:var(--muted);font-size:10px;margin-top:8px;">Edit freely &#8212; the draft goes to your Outlook Drafts folder.</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeEmailModal()">Cancel</button>
+      <button class="btn" onclick="copyEmailBody()" style="color:var(--muted)">&#x2398; Copy</button>
+      <button class="btn ms-btn" id="em-send-btn">&#x2B21; Save to Drafts</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────
+const SK = 'followup_v2';
+let items = [];
+let currentFilter = 'all';
+let groupByClient = false;
+let selectedIds = new Set();
+let snoozeTargetId = null;
+let doneTargetId = null;
+let editingId = null;
+let collapsedGroups = new Set();
+
+// ── STORAGE ────────────────────────────────────────────────
+function load(){
+  var DEFAULT_DATA = [{"client":"The Lynch Law Group","contact":"Cara Londino","contactEmail":"clondino@lynchlaw-group.com","candidate":"","type":"update","priority":"medium","date":"2026-03-17","recurDays":"7","notes":"","interviewRequestDate":null,"id":"mmp0l6y6z8k0f","done":false,"createdAt":1773413464686,"lastContactAt":1773419166045},{"client":"Kimbrough Legal, PLLC","contact":"Creseida Greene","contactEmail":"talent@kimbroughlegal.com","candidate":"Tim Daniel","type":"interviewing","priority":"medium","date":"2026-03-18","recurDays":null,"notes":"They are having a second round interview with him on Tuesday 3/17 at 2:30pm","interviewRequestDate":null,"id":"mmp478mjpexq0","done":false,"createdAt":1773419532139,"lastContactAt":1773419775260},{"client":"Berkowitz, Lichtstein, Kuritsky, Giasullo & Gross, LLC","contact":"Stewart Leviss","contactEmail":"sleviss@blkgg.com","candidate":"","type":"update","priority":"low","date":"2026-03-23","recurDays":"7","notes":"","interviewRequestDate":null,"id":"mmp5iwclkq0t2","done":false,"createdAt":1773421755717},{"client":"Macdonald & Cody, LLP","contact":"Cecilia White","contactEmail":"cwhite@macdonaldcody.com","candidate":"","type":"update","priority":"medium","date":"2026-03-18","recurDays":"7","notes":"","interviewRequestDate":null,"id":"mmp5jpsn9ps1z","done":false,"createdAt":1773421793879},{"client":"Harman Claytor Corrigan & Wellman","contact":"Jeremy Capps","contactEmail":"jcapps@hccw.com","candidate":"Andrew Selman","type":"interviewing","priority":"high","date":"2026-03-17","recurDays":null,"notes":"in person interview on Friday at 1pm","interviewRequestDate":null,"id":"mmp5mikh4pjaa","done":false,"createdAt":1773421924481,"doneAt":null,"doneNote":null,"lastContactAt":1773666888785},{"client":"Berenson & Associates","contact":"Racehl Berenson","contactEmail":"rachel@nmjusticelaw.com","candidate":"Anthony Alden","type":"feedback","priority":"medium","date":"2026-03-16","recurDays":null,"notes":"","interviewRequestDate":null,"id":"mmp5pz3jwpkqn","done":false,"createdAt":1773422085871,"lastContactAt":1773673046613},{"client":"McLain & Merritt, P.C.","contact":"Chloe Reid","contactEmail":"creid@mmatllaw.com","candidate":"Connor Behrend","type":"interviewing","priority":"high","date":"2026-03-19","recurDays":null,"notes":"In person on Friday 3/13. 2 partners were unavailable on Friday so they will be speaking to him this week as well. Went well Friday but want the rest of our team to speak with him","interviewRequestDate":null,"id":"mmp647j3u2sgo","done":false,"createdAt":1773422749983,"lastContactAt":1773667459285},{"client":"Robinson, Kriger & McCallum","contact":"Tom Quartararo","contactEmail":"tq@rkmlegal.com","candidate":"","type":"update","priority":"medium","date":"2026-03-18","recurDays":"7","notes":"","interviewRequestDate":null,"id":"mmp693fxl5emd","done":false,"createdAt":1773422977965},{"client":"Goldblatt + Singer","contact":"Sandy Frolik","contactEmail":"sfrolik@stlinjurylaw.com","candidate":"","type":"update","priority":"medium","date":"2026-03-17","recurDays":null,"notes":"","interviewRequestDate":null,"id":"mmp7a13bdyxy2","done":false,"createdAt":1773424701191},{"client":"Messerli Kramer, P.A.","contact":"Alysa Hannula","contactEmail":"ahannula@MesserliKramer.com","candidate":"James Adams","type":"update","priority":"low","date":"2026-03-19","recurDays":null,"notes":"5 yr.+ plus Corporate MA Associates for Minneapolis","interviewRequestDate":null,"id":"mmp8bqzkfzo53","done":false,"createdAt":1773426461024},{"client":"Messerli Kramer, P.A.","contact":"Alysa Hannula","contactEmail":"ahannula@MesserliKramer.com","candidate":"James Adams","type":"interviewing","priority":"low","date":"2026-03-30","recurDays":null,"notes":"Business practice is out starting 03/16 for a 2 week spring break hiatus.","interviewRequestDate":null,"id":"mmp8c5vpfvitp","done":false,"createdAt":1773426480325,"doneAt":null,"doneNote":null,"lastContactAt":null},{"client":"Berenson & Associates","contact":"Racehl Berenson","contactEmail":"rachel@nmjusticelaw.com","candidate":"Christopher Mandonado","type":"interviewing","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"Pending time for 3/23.","interviewRequestDate":null,"id":"mmp8e5dl0euy2","done":false,"createdAt":1773426572985,"doneAt":null,"doneNote":null,"lastContactAt":null},{"client":"AES Consulting Engineers","contact":"Kimery Parker","contactEmail":"Kimery.Parker@aesva.com","candidate":"Benjamin Mills","type":"feedback","priority":"medium","date":"2026-03-17","recurDays":null,"notes":"Subbed on 3/12/26- Relo candidate","interviewRequestDate":null,"id":"mmp8h2oevii79","done":false,"createdAt":1773426709454},{"client":"Lutco, Inc.","contact":"Angela Fredette","contactEmail":"afredette@lutco.com","candidate":"","type":"update","priority":"medium","date":"2026-03-17","recurDays":null,"notes":"","interviewRequestDate":null,"id":"mmp8iwgrbuxrg","done":false,"createdAt":1773426794715},{"client":"Tanenbaum Keale LLP","contact":"Thomas Robertson","contactEmail":"trobertson@tktrial.com","candidate":"Francis Howell","type":"candidate","priority":"high","date":"2026-03-16","recurDays":null,"notes":"They wanted to do an in-person. He is not able to make that work, we asked if he could do a phone call.","interviewRequestDate":"2026-03-10","id":"mmp8s3b9kniu0","done":false,"createdAt":1773427223493},{"client":"OnderLaw","contact":"Jim Onder Jr.","contactEmail":"onderjr@onderlaw.com","candidate":"","type":"update","priority":"medium","date":"2026-03-18","recurDays":null,"notes":"","interviewRequestDate":null,"id":"mmp90hfz5f4el","done":false,"createdAt":1773427615055},{"id":"mmth5ob6114fo","client":"Williams Law Group","contact":"","contactEmail":"","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob68bz59","client":"Berkowitz, Lichtstein, Kuritsky, Gia","contact":"","contactEmail":"","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6090kb","client":"Kolmogorov Law","contact":"","contactEmail":"","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6yhcyh","client":"Harman Claytor Corrigan & Wellm","contact":"","contactEmail":"","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6prvfx","client":"Porter Scott","contact":"","contactEmail":"","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6w0fqx","client":"Ruggiero Law Offices LLC","contact":"","contactEmail":"","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6u7xcz","client":"Gearhart Law, LLC","contact":"","contactEmail":"","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6acreh","client":"Stone Busailah, LLP","contact":"","contactEmail":"","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6xcpb4","client":"BatesCarter","contact":"","contactEmail":"","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6kjh59","client":"The RiverStone Group","contact":"","contactEmail":"","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob607r8n","client":"Concorde Investment Services","contact":"","contactEmail":"","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6fwtup","client":"The Keller Firm","contact":"","contactEmail":"","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6m0k7p","client":"KANOSKI BRESNEY","contact":"","contactEmail":"","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6u2u5q","client":"Blades & Rosenfeld, P.A.","contact":"","contactEmail":"","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6dybzp","client":"The Hustead Law Firm","contact":"","contactEmail":"","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob65zg82","client":"USA Mortgage","contact":"","contactEmail":"","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6sdils","client":"Hermes Abrasives, LTD.","contact":"","contactEmail":"","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob67r11z","client":"Roberts Perryman P.C.","contact":"","contactEmail":"","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6da20s","client":"Law Offices of Bonnie M. Benson","contact":"","contactEmail":"","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6aak7h","client":"Arnold & Smith, PLLC","contact":"","contactEmail":"","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6k305a","client":"Kirton McConkie PC","contact":"","contactEmail":"","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6pfcjh","client":"Kramon & Graham","contact":"","contactEmail":"","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6flwx8","client":"Bank South Mortgage","contact":"","contactEmail":"","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6aid8z","client":"Lyle Law LLC","contact":"","contactEmail":"","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6w9aak","client":"First Century Bank","contact":"","contactEmail":"","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob605xbu","client":"Evers & Company CPA's","contact":"","contactEmail":"","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob63zdek","client":"Madison County Bank","contact":"","contactEmail":"","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6wo1if","client":"Kjar McKenna & Stockalper LLP","contact":"","contactEmail":"","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6pwwco","client":"Research Planning, Inc.","contact":"","contactEmail":"","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6n8znd","client":"WL Plastics","contact":"","contactEmail":"","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob62vk0i","client":"Alvarez law offices","contact":"","contactEmail":"","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6zhugy","client":"Jaramillo Accounting Group LLC","contact":"","contactEmail":"","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6bluw3","client":"Baskerville-Donovan, Inc. Engineers","contact":"","contactEmail":"","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6c7oh3","client":"Kanner & Pintaluga","contact":"","contactEmail":"","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null}];
+  try{
+    var stored = localStorage.getItem(SK);
+    if(stored){
+      items = JSON.parse(stored) || [];
+    } else {
+      items = DEFAULT_DATA;
+      save();
+    }
+  }catch{
+    items = DEFAULT_DATA;
+    save();
+  }
+}
+function save(){localStorage.setItem(SK,JSON.stringify(items));}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+
+// ── DATE UTILS ─────────────────────────────────────────────
+function today(){return new Date().toISOString().split('T')[0];}
+function addDays(ds,n){const d=new Date(ds+'T00:00:00');d.setDate(d.getDate()+n);return d.toISOString().split('T')[0];}
+function diffDays(ds){
+  const d=new Date(ds+'T00:00:00');
+  const t=new Date(today()+'T00:00:00');
+  return Math.round((d-t)/86400000);
+}
+function startOfWeek(){const d=new Date(today()+'T00:00:00');d.setDate(d.getDate()-d.getDay());return d.toISOString().split('T')[0];}
+function fmtDate(ds){return new Date(ds+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});}
+function dueMeta(ds){
+  const d=diffDays(ds);
+  if(d<0) return{cls:'due-overdue',label:`${Math.abs(d)}d overdue`};
+  if(d===0) return{cls:'due-today',label:'Today'};
+  if(d<=7) return{cls:'due-soon',label:`In ${d}d`};
+  return{cls:'due-ok',label:fmtDate(ds)};
+}
+function daysSince(ts){
+  if(!ts) return null;
+  const d=Math.floor((Date.now()-ts)/86400000);
+  if(d===0) return 'today';
+  if(d===1) return '1d ago';
+  return `${d}d ago`;
+}
+
+// ── RENDER HELPERS ─────────────────────────────────────────
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function typeTag(t){
+  const m={update:['tag-update','Sourcing Update'],feedback:['tag-feedback','Feedback on Subs'],candidate:['tag-candidate','Interview Request'],interviewing:['tag-interviewing','Interviewing'],offer:['tag-offer','Offer Stage'],other:['tag-other','Other']};
+  const[cls,lbl]=m[t]||m.other;
+  return`<span class="tag ${cls}">${lbl}</span>`;
+}
+function rowClass(item){
+  if(item.done) return 'row-done';
+  const d=diffDays(item.date);
+  if(d<0) return 'row-overdue';
+  if(d===0) return 'row-today';
+  if(d<=3) return 'row-soon';
+  return '';
+}
+
+// ── FILTER & SORT ──────────────────────────────────────────
+function getFiltered(){
+  const q=document.getElementById('search').value.toLowerCase();
+  return items.filter(item=>{
+    const ms=!q||[item.client,item.notes,item.contact,item.candidate].some(f=>f&&f.toLowerCase().includes(q));
+    if(!ms) return false;
+    if(currentFilter==='done') return item.done;
+    if(item.done) return false;
+    if(currentFilter==='overdue') return diffDays(item.date)<0;
+    if(currentFilter==='today') return diffDays(item.date)===0;
+    if(currentFilter==='week'){const d=diffDays(item.date);return d>=0&&d<=7;}
+    if(currentFilter==='all') return true;
+    return item.type===currentFilter;
+  }).sort((a,b)=>{
+    if(a.done!==b.done) return a.done?1:-1;
+    const po={high:0,medium:1,low:2};
+    if(po[a.priority]!==po[b.priority]) return po[a.priority]-po[b.priority];
+    return a.date.localeCompare(b.date);
+  });
+}
+
+// ── MAIN RENDER ────────────────────────────────────────────
+function renderTable(){
+  const rows=getFiltered();
+  const tbody=document.getElementById('table-body');
+  const empty=document.getElementById('empty-state');
+  updateStats();
+  updateDonePanel();
+  updateBulkBar();
+  updateClientDatalist();
+
+  if(!rows.length){tbody.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+
+  if(groupByClient&&currentFilter!=='done'){
+    tbody.innerHTML=renderGrouped(rows);
+  } else {
+    tbody.innerHTML=rows.map(item=>renderRow(item)).join('');
+  }
+}
+
+function renderGrouped(rows){
+  const groups={};
+  rows.forEach(item=>{(groups[item.client]=groups[item.client]||[]).push(item);});
+  let html='';
+  Object.keys(groups).sort().forEach(client=>{
+    const collapsed=collapsedGroups.has(client);
+    const count=groups[client].length;
+    const hasOverdue=groups[client].some(i=>diffDays(i.date)<0);
+    html+=`<tr class="group-header"><td colspan="7">
+      <span class="group-toggle" onclick="toggleGroup('${esc(client)}')">
+        ${collapsed?'▶':'▼'}
+        <span style="color:${hasOverdue?'var(--danger)':'var(--text)'}">${esc(client)}</span>
+        <span style="opacity:0.5;font-size:10px;">(${count})</span>
+      </span>
+    </td></tr>`;
+    if(!collapsed) html+=groups[client].map(item=>renderRow(item)).join('');
+  });
+  return html;
+}
+
+function renderRow(item){
+  const dm=dueMeta(item.date);
+  const chk=selectedIds.has(item.id);
+  const ds=daysSince(item.doneAt||item.lastContactAt);
+  return`<tr class="${rowClass(item)}" onclick="rowClick(event,'${item.id}')">
+    <td onclick="event.stopPropagation()"><input type="checkbox" ${chk?'checked':''} onchange="toggleSelect('${item.id}',this.checked)"></td>
+    <td>${healthBadge(item.client)}</td>
+    <td>
+      <div class="client-name">${esc(item.client)}${item.recurDays?`<span class="recur-badge">↻ ${item.recurDays}d</span>`:''}</div>
+      ${item.candidate?`<div class="candidate-sub">↳ ${esc(item.candidate)}</div>`:''}
+      ${item.contact?`<div class="contact-sub">${esc(item.contact)}</div>`:''}
+    </td>
+    <td>${typeTag(item.type)}</td>
+    <td><span class="due-date ${item.done?'due-ok':dm.cls}">${item.done?fmtDate(item.date):dm.label}</span></td>
+    <td><span class="pdot p-${item.priority}"></span>${item.priority.charAt(0).toUpperCase()+item.priority.slice(1)}</td>
+    <td>
+      <div class="note-preview">${esc(item.notes||'—')}</div>
+      ${item.doneNote?`<div style="color:var(--green);font-size:10px;margin-top:2px;">✓ ${esc(item.doneNote)}</div>`:''}
+      ${item.interviewRequestDate&&item.type==='candidate'?`<div style="color:var(--blue);font-size:10px;margin-top:2px;">📅 Req. sent ${fmtDate(item.interviewRequestDate)}</div>`:''}
+      ${ds&&!item.doneNote?`<div class="days-since">${item.done?'completed':'last contact'} ${ds}</div>`:''}
+    </td>
+    <td onclick="event.stopPropagation()">
+      <div class="row-actions">
+        ${!item.done?`<button class="btn btn-sm" onclick="openSnooze('${item.id}')" title="Snooze">⏱</button>`:''}
+        ${!item.done?`<button class="btn btn-sm" style="color:var(--blue);border-color:var(--blue)" onclick="openEmailDraft('${item.id}')" title="Draft Outlook email">✉</button>`:''}
+        ${!item.done?`<button class="btn btn-sm btn-green" onclick="openDoneModal('${item.id}')" title="Mark done">✓</button>`:''}
+        <button class="btn btn-sm btn-danger" onclick="deleteItem('${item.id}')" title="Delete">✕</button>
+      </div>
+    </td>
+  </tr>`;
+}
+
+// ── STATS ──────────────────────────────────────────────────
+function updateStats(){
+  const open=items.filter(i=>!i.done);
+  document.getElementById('stat-overdue').textContent=open.filter(i=>diffDays(i.date)<0).length;
+  document.getElementById('stat-today').textContent=open.filter(i=>diffDays(i.date)===0).length;
+  document.getElementById('stat-week').textContent=open.filter(i=>{const d=diffDays(i.date);return d>0&&d<=7;}).length;
+  document.getElementById('stat-total').textContent=open.length;
+  const sow=startOfWeek();
+  document.getElementById('stat-done-week').textContent=items.filter(i=>i.done&&i.doneAt&&new Date(i.doneAt)>=new Date(sow+'T00:00:00')).length;
+}
+
+function updateDonePanel(){
+  const sow=startOfWeek();
+  const done=items.filter(i=>i.done&&i.doneAt&&new Date(i.doneAt)>=new Date(sow+'T00:00:00'));
+  document.getElementById('done-panel-items').innerHTML=done.length
+    ? done.map(i=>`<div class="done-chip"><strong>${esc(i.client)}</strong>${i.candidate?' – '+esc(i.candidate):''} ${typeTag(i.type)}</div>`).join('')
+    : '<span style="color:var(--muted);font-size:11px;">Nothing completed yet this week.</span>';
+}
+
+function toggleDonePanel(){document.getElementById('done-panel').classList.toggle('open');}
+
+function updateClientDatalist(){
+  const clients=[...new Set(items.map(i=>i.client).filter(Boolean))];
+  document.getElementById('client-list').innerHTML=clients.map(c=>`<option value="${esc(c)}">`).join('');
+}
+
+// ── FILTERS ────────────────────────────────────────────────
+function setFilter(f,btn,fromStat=false){
+  currentFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  ['s-overdue','s-today','s-week'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove('active-filter');});
+  if(btn) btn.classList.add('active');
+  if(fromStat){
+    document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+    const map={overdue:'s-overdue',today:'s-today',week:'s-week'};
+    if(map[f]) document.getElementById(map[f]).classList.add('active-filter');
+  }
+  renderTable();
+}
+
+function toggleGrouping(){
+  groupByClient=!groupByClient;
+  const btn=document.getElementById('group-btn');
+  btn.style.color=groupByClient?'var(--accent)':'';
+  btn.style.borderColor=groupByClient?'var(--accent)':'';
+  renderTable();
+}
+function toggleGroup(client){
+  if(collapsedGroups.has(client)) collapsedGroups.delete(client); else collapsedGroups.add(client);
+  renderTable();
+}
+
+// ── SELECTION ──────────────────────────────────────────────
+function toggleSelect(id,checked){
+  if(checked) selectedIds.add(id); else selectedIds.delete(id);
+  updateBulkBar();
+}
+function toggleSelectAll(checked){
+  getFiltered().forEach(i=>{if(checked) selectedIds.add(i.id); else selectedIds.delete(i.id);});
+  renderTable();
+}
+function clearSelection(){selectedIds.clear();document.getElementById('chk-all').checked=false;renderTable();}
+function updateBulkBar(){
+  const bar=document.getElementById('bulk-bar');
+  if(selectedIds.size>0){bar.classList.add('open');document.getElementById('bulk-count').textContent=`${selectedIds.size} selected`;}
+  else bar.classList.remove('open');
+}
+function bulkDone(){
+  const count=selectedIds.size;
+  [...selectedIds].forEach(id=>{
+    const i=items.find(x=>x.id===id);
+    if(i&&!i.done){i.done=true;i.doneAt=Date.now();handleRecur(i);}
+  });
+  save();selectedIds.clear();renderTable();
+  showToast('Done',`${count} item${count>1?'s':''} marked complete.`,false,'success');
+}
+function bulkDelete(){
+  if(!confirm(`Delete ${selectedIds.size} follow-up(s)?`)) return;
+  items=items.filter(i=>!selectedIds.has(i.id));
+  save();selectedIds.clear();renderTable();
+}
+
+function rowClick(e,id){
+  if(e.target.tagName==='INPUT'||e.target.tagName==='BUTTON') return;
+  openEdit(id);
+}
+
+// ── ADD/EDIT MODAL ─────────────────────────────────────────
+function toggleInterviewField(){
+  const type = document.getElementById('f-type').value;
+  const field = document.getElementById('interview-date-field');
+  field.style.display = type === 'candidate' ? 'block' : 'none';
+  if(type !== 'candidate') document.getElementById('f-interview-date').value = '';
+}
+function openModal(){
+  editingId=null;
+  document.getElementById('modal-title').textContent='New Follow-Up';
+  document.getElementById('modal-dupe-btn').style.display='none';
+  ['f-client','f-contact','f-contact-email','f-candidate','f-notes','f-interview-date'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('interview-date-field').style.display='none';
+  document.getElementById('f-type').value='update';
+  document.getElementById('f-priority').value='medium';
+  document.getElementById('f-date').value=today();
+  document.getElementById('f-recur').value='';
+  document.getElementById('modal').classList.add('open');
+  setTimeout(()=>document.getElementById('f-client').focus(),50);
+}
+function openEdit(id){
+  const item=items.find(i=>i.id===id); if(!item) return;
+  editingId=id;
+  document.getElementById('modal-title').textContent='Edit Follow-Up';
+  document.getElementById('modal-dupe-btn').style.display='inline-block';
+  document.getElementById('f-client').value=item.client;
+  document.getElementById('f-contact').value=item.contact||'';
+  document.getElementById('f-contact-email').value=item.contactEmail||'';
+  document.getElementById('f-candidate').value=item.candidate||'';
+  document.getElementById('f-type').value=item.type;
+  document.getElementById('f-priority').value=item.priority;
+  document.getElementById('f-date').value=item.date;
+  document.getElementById('f-recur').value=item.recurDays||'';
+  document.getElementById('f-notes').value=item.notes||'';
+  document.getElementById('f-interview-date').value=item.interviewRequestDate||'';
+  document.getElementById('interview-date-field').style.display=item.type==='candidate'?'block':'none';
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal(){document.getElementById('modal').classList.remove('open');editingId=null;}
+function saveItem(){
+  const client=document.getElementById('f-client').value.trim();
+  const date=document.getElementById('f-date').value;
+  if(!client||!date){alert('Client name and due date are required.');return;}
+  const data={
+    client,
+    contact:document.getElementById('f-contact').value.trim(),
+    contactEmail:document.getElementById('f-contact-email').value.trim(),
+    candidate:document.getElementById('f-candidate').value.trim(),
+    type:document.getElementById('f-type').value,
+    priority:document.getElementById('f-priority').value,
+    date,
+    recurDays:document.getElementById('f-recur').value||null,
+    notes:document.getElementById('f-notes').value.trim(),
+    interviewRequestDate:document.getElementById('f-type').value==='candidate'?document.getElementById('f-interview-date').value||null:null
+  };
+  if(editingId){
+    const idx=items.findIndex(i=>i.id===editingId);
+    if(idx>-1) items[idx]={...items[idx],...data};
+  } else {
+    items.push({...data,id:uid(),done:false,createdAt:Date.now()});
+  }
+  save();closeModal();renderTable();
+}
+function duplicateEditing(){
+  if(!editingId) return;
+  const src=items.find(i=>i.id===editingId); if(!src) return;
+  items.push({...src,id:uid(),done:false,createdAt:Date.now(),doneAt:null,doneNote:null,lastContactAt:null});
+  save();closeModal();renderTable();
+  showToast('Duplicated','Follow-up duplicated.',false,'success');
+}
+
+// ── SNOOZE ─────────────────────────────────────────────────
+function openSnooze(id){snoozeTargetId=id;document.getElementById('snooze-modal').classList.add('open');}
+function closeSnooze(){document.getElementById('snooze-modal').classList.remove('open');snoozeTargetId=null;}
+function snooze(days){
+  const item=items.find(i=>i.id===snoozeTargetId); if(!item) return;
+  item.date=addDays(today(),days);
+  save();closeSnooze();renderTable();
+  showToast('Snoozed',`Pushed to ${fmtDate(item.date)}.`,false);
+}
+function snoozeCustom(){
+  const val=document.getElementById('snooze-custom').value; if(!val) return;
+  const item=items.find(i=>i.id===snoozeTargetId); if(!item) return;
+  item.date=val;
+  save();closeSnooze();renderTable();
+  showToast('Snoozed',`Pushed to ${fmtDate(val)}.`,false);
+}
+
+// ── MARK DONE ──────────────────────────────────────────────
+function openDoneModal(id){
+  doneTargetId=id;
+  document.getElementById('done-note-input').value='';
+  document.getElementById('done-modal').classList.add('open');
+  setTimeout(()=>document.getElementById('done-note-input').focus(),50);
+}
+function closeDoneModal(doMark){
+  if(doMark&&doneTargetId){
+    const item=items.find(i=>i.id===doneTargetId);
+    if(item){
+      item.done=true;
+      item.doneAt=Date.now();
+      item.lastContactAt=Date.now();
+      item.doneNote=document.getElementById('done-note-input').value.trim()||null;
+      handleRecur(item);
+    }
+    save();renderTable();
+    showToast('Done ✓','Marked as complete.',false,'success');
+  }
+  document.getElementById('done-modal').classList.remove('open');
+  doneTargetId=null;
+}
+function handleRecur(item){
+  if(!item.recurDays) return;
+  items.push({
+    client:item.client,contact:item.contact,candidate:item.candidate,
+    type:item.type,priority:item.priority,
+    date:addDays(today(),parseInt(item.recurDays)),
+    recurDays:item.recurDays,notes:item.notes,
+    id:uid(),done:false,createdAt:Date.now()
+  });
+  showToast('Recurring','Next follow-up created automatically.',false,'success');
+}
+
+// ── DELETE ─────────────────────────────────────────────────
+function deleteItem(id){
+  if(!confirm('Delete this follow-up?')) return;
+  items=items.filter(i=>i.id!==id);
+  save();renderTable();
+}
+
+// ── EXPORT CSV ─────────────────────────────────────────────
+function exportCSV(){
+  const cols=['Client','Contact','Candidate','Type','Priority','Due Date','Interview Request Date','Status','Notes','Outcome Note','Recurring'];
+  const rows=items.map(i=>[
+    i.client,i.contact||'',i.candidate||'',i.type,i.priority,i.date,
+    i.done?'Done':'Pending',
+    i.interviewRequestDate||'',
+    (i.notes||'').replace(/"/g,'""'),
+    (i.doneNote||'').replace(/"/g,'""'),
+    i.recurDays?`Every ${i.recurDays} days`:''
+  ].map(v=>`"${v}"`).join(','));
+  const csv=[cols.join(','),...rows].join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download=`follow-ups-${today()}.csv`;a.click();
+}
+
+// ── NOTIFICATIONS ──────────────────────────────────────────
+const BANNER_KEY='fu_banner_v2';
+const LAST_NOTIF_KEY='fu_last_notif';
+
+function checkNotifBanner(){
+  if(localStorage.getItem(BANNER_KEY)) return;
+  if(!('Notification' in window)) return;
+  if(Notification.permission==='granted'||Notification.permission==='denied') return;
+  document.getElementById('notif-banner').style.display='flex';
+}
+function dismissBanner(){localStorage.setItem(BANNER_KEY,'1');document.getElementById('notif-banner').style.display='none';}
+async function requestNotifPermission(){
+  const p=await Notification.requestPermission();
+  dismissBanner();
+  if(p==='granted'){showToast('Reminders enabled','You\'ll be notified of urgent items each time you open this.',false,'success');triggerDailyNotif(true);}
+  else showToast('Blocked','Notifications were blocked. Enable them in browser site settings.',true);
+}
+function triggerDailyNotif(force=false){
+  if(!('Notification' in window)||Notification.permission!=='granted') return;
+  if(!force&&localStorage.getItem(LAST_NOTIF_KEY)===today()) return;
+  const open=items.filter(i=>!i.done);
+  const ov=open.filter(i=>diffDays(i.date)<0).length;
+  const td=open.filter(i=>diffDays(i.date)===0).length;
+  if(!ov&&!td) return;
+  localStorage.setItem(LAST_NOTIF_KEY,today());
+  const body=[ov?`${ov} overdue`:'',td?`${td} due today`:''].filter(Boolean).join(', ')+'.';
+  showToast(ov?'🔴 Action needed':'🟡 Due today',body,ov>0,ov?'danger':'');
+  try{new Notification('Follow-Up Tracker',{body,tag:'fu-daily'});}catch(e){}
+}
+
+// ── TOAST ──────────────────────────────────────────────────
+function showToast(title,msg,isDanger,type=''){
+  const c=document.getElementById('toast-container');
+  const id='t'+uid();
+  const cls='toast'+(isDanger?' danger':type==='success'?' success':'');
+  const div=document.createElement('div');
+  div.className=cls;div.id=id;
+  div.innerHTML=`<button class="toast-close" onclick="document.getElementById('${id}').remove()">✕</button><div class="toast-title">${title}</div><div class="toast-body">${msg}</div>`;
+  c.appendChild(div);
+  setTimeout(()=>{const el=document.getElementById(id);if(el)el.remove();},7000);
+}
+
+// ── KEYBOARD ──────────────────────────────────────────────
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){closeModal();closeSnooze();closeDoneModal(false);closeEmailModal();closeOutlookModal();}
+  const tag=document.activeElement.tagName;
+  if(e.key==='n'&&!e.ctrlKey&&!e.metaKey&&tag!=='INPUT'&&tag!=='TEXTAREA'&&tag!=='SELECT') openModal();
+});
+['modal','snooze-modal','done-modal'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',function(e){
+    if(e.target!==this) return;
+    if(id==='done-modal') closeDoneModal(false);
+    else if(id==='snooze-modal') closeSnooze();
+    else closeModal();
+  });
+});
+
+
+// ── CLIENT HEALTH SCORE ───────────────────────────────────
+function clientHealth(clientName){
+  const clientItems = items.filter(i=>i.client===clientName&&!i.done);
+  const overdue = clientItems.filter(i=>diffDays(i.date)<0).length;
+  const total = clientItems.length;
+  // also check last contact across ALL items for this client
+  const allForClient = items.filter(i=>i.client===clientName);
+  const lastTs = Math.max(0,...allForClient.map(i=>i.lastContactAt||i.doneAt||0));
+  const daysSinceContact = lastTs ? Math.floor((Date.now()-lastTs)/86400000) : 999;
+
+  if(overdue>=2 || daysSinceContact>14) return 'red';
+  if(overdue>=1 || daysSinceContact>7 || total>=3) return 'amber';
+  return 'green';
+}
+function healthBadge(clientName){
+  const h=clientHealth(clientName);
+  const map={red:['health-red','● At Risk'],amber:['health-amber','● Needs Attention'],green:['health-green','● On Track']};
+  const[cls,lbl]=map[h];
+  return`<span class="health ${cls}">${lbl}</span>`;
+}
+
+// ── MICROSOFT / OUTLOOK ───────────────────────────────────
+const MS_KEY='fu_ms_config';
+const CLAUDE_KEY='fu_claude_key';
+let msConfig=null;
+let msToken=null;
+let emailDraftItemId=null;
+
+function loadMsConfig(){
+  try{msConfig=JSON.parse(localStorage.getItem(MS_KEY));}catch{msConfig=null;}
+  var savedClaudeKey=localStorage.getItem(CLAUDE_KEY)||'';
+  if(savedClaudeKey){var ck=document.getElementById('ms-claude-key');if(ck)ck.value=savedClaudeKey;}
+  var storedToken=sessionStorage.getItem('fu_ms_token');
+  var storedExpiry=parseInt(sessionStorage.getItem('fu_ms_token_expiry')||'0');
+  if(storedToken && storedExpiry>Date.now()){
+    msToken=storedToken;
+  } else {
+    sessionStorage.removeItem('fu_ms_token');
+    sessionStorage.removeItem('fu_ms_token_expiry');
+  }
+  // Also check hash fragment on page load (redirect from Microsoft auth)
+  if(window.location.hash && window.location.hash.includes('access_token=')){
+    var params=new URLSearchParams(window.location.hash.slice(1));
+    var tok=params.get('access_token');
+    var exp=parseInt(params.get('expires_in')||3600);
+    if(tok){
+      msToken=tok;
+      sessionStorage.setItem('fu_ms_token',tok);
+      sessionStorage.setItem('fu_ms_token_expiry',(Date.now()+exp*1000-60000).toString());
+      // Clean the hash without reloading
+      history.replaceState(null,'',window.location.pathname+window.location.search);
+      showToast('Outlook connected','Draft emails will be saved to your Outlook Drafts folder.',false,'success');
+    }
+  }
+  updateMsBtn();
+}
+function updateMsBtn(){
+  var btn=document.getElementById('ms-connect-header-btn');
+  if(!btn) return;
+  if(msToken && msConfig && msConfig.email){
+    btn.textContent='⬡ '+msConfig.email.split('@')[0];
+    btn.style.color='var(--blue)';
+  } else if(msToken){
+    btn.textContent='⬡ Outlook ✓';
+    btn.style.color='var(--blue)';
+  } else {
+    btn.textContent='⬡ Connect Outlook';
+    btn.style.color='';
+  }
+}
+function msLogin(){
+  var onLocalhost = window.location.protocol==='https:' || (window.location.protocol==='http:' && window.location.hostname==='localhost');
+  var servePanel=document.getElementById('ms-panel-serve');
+  var configPanel=document.getElementById('ms-panel-config');
+  var btn=document.getElementById('ms-connect-btn');
+  if(onLocalhost){
+    servePanel.style.display='none';
+    configPanel.style.display='block';
+    if(msConfig&&msConfig.clientId) document.getElementById('ms-client-id').value=msConfig.clientId;
+    if(msConfig&&msConfig.tenantId) document.getElementById('ms-tenant-id').value=msConfig.tenantId;
+    btn.textContent='Sign In with Microsoft';
+    btn.onclick=msConnectSave;
+  } else {
+    // Running from file:// or non-localhost — show "serve it first" instructions
+    servePanel.style.display='block';
+    configPanel.style.display='none';
+    btn.style.display='none';
+    // Build the serve command using the file path
+    var filePath=window.location.pathname;
+    var dir=filePath.substring(0,filePath.lastIndexOf('/'));
+    var cmd='cd "'+decodeURIComponent(dir)+'" && python3 -m http.server 8080';
+    document.getElementById('ms-serve-cmd').textContent=cmd;
+    var filename=filePath.substring(filePath.lastIndexOf('/')+1);
+    var link=document.getElementById('ms-localhost-link');
+    link.href='http://localhost:8080/'+filename;
+    link.textContent='http://localhost:8080/'+filename;
+    document.getElementById('ms-panel-serve').querySelector('p:last-of-type').innerHTML=
+      'Then open <a href="http://localhost:8080/'+filename+'" target="_blank" style="color:var(--blue);">http://localhost:8080/'+filename+'</a> and click ⬡ Connect Outlook again.';
+  }
+  document.getElementById('ms-status')&&(document.getElementById('ms-status').textContent='');
+  document.getElementById('outlook-modal').classList.add('open');
+}
+function closeOutlookModal(){document.getElementById('outlook-modal').classList.remove('open');}
+function setMsStatus(msg,type){
+  var el=document.getElementById('ms-status');
+  if(el){el.textContent=msg;el.className='outlook-status '+(type||'');}
+}
+function copyServeCmd(){
+  var cmd=document.getElementById('ms-serve-cmd').textContent;
+  navigator.clipboard.writeText(cmd).then(function(){showToast('Copied','Paste this in Terminal and press Enter.',false,'success');});
+}
+function getRedirectUri(){
+  // Exact URL of this page, no hash or query string
+  return window.location.href.split('#')[0].split('?')[0];
+}
+function msConnectSave(){
+  var clientId=document.getElementById('ms-client-id').value.trim();
+  var tenantId=document.getElementById('ms-tenant-id').value.trim();
+  if(!clientId){setMsStatus('Client ID is required.','err');return;}
+  msConfig={clientId:clientId,tenantId:tenantId||null,email:''};
+  localStorage.setItem(MS_KEY,JSON.stringify(msConfig));
+  var claudeKeyEl=document.getElementById('ms-claude-key');
+  if(claudeKeyEl&&claudeKeyEl.value.trim()){localStorage.setItem(CLAUDE_KEY,claudeKeyEl.value.trim());}
+  // Show the exact redirect URI so the user can verify it matches Azure
+  var uri=getRedirectUri();
+  var uriBox=document.getElementById('ms-redirect-uri-display');
+  var uriVal=document.getElementById('ms-redirect-uri-val');
+  if(uriBox&&uriVal){uriVal.textContent=uri;uriBox.style.display='block';}
+}
+function msDoSignIn(){
+  closeOutlookModal();
+  msAuthenticate();
+}
+function copyRedirectUri(){
+  var uri=document.getElementById('ms-redirect-uri-val').textContent;
+  navigator.clipboard.writeText(uri).then(function(){showToast('Copied','Paste this into Azure App Registration \u2192 Authentication \u2192 Redirect URIs',false,'success');});
+}
+function msAuthenticate(){
+  if(!msConfig||!msConfig.clientId){msLogin();return Promise.resolve(null);}
+  return new Promise(function(resolve){
+    var scope=encodeURIComponent('https://graph.microsoft.com/Mail.ReadWrite offline_access');
+    var redirectUri=getRedirectUri();
+    var tenant=msConfig.tenantId||'organizations';
+    var authUrl='https://login.microsoftonline.com/'+tenant+'/oauth2/v2.0/authorize'
+      +'?client_id='+encodeURIComponent(msConfig.clientId)
+      +'&response_type=token'
+      +'&redirect_uri='+encodeURIComponent(redirectUri)
+      +'&scope='+scope
+      +'&response_mode=fragment'
+      +'&prompt=select_account';
+    var popup=window.open(authUrl,'ms-auth','width=520,height=620,scrollbars=yes');
+    if(!popup){
+      window.location.href=authUrl;
+      resolve(null);
+      return;
+    }
+    var poll=setInterval(function(){
+      try{
+        var url=popup.location.href;
+        if(url.includes('access_token=')){
+          clearInterval(poll);
+          var params=new URLSearchParams(url.split('#')[1]);
+          msToken=params.get('access_token');
+          var exp=parseInt(params.get('expires_in')||3600);
+          sessionStorage.setItem('fu_ms_token',msToken);
+          sessionStorage.setItem('fu_ms_token_expiry',(Date.now()+exp*1000-60000).toString());
+          popup.close();
+          fetch('https://graph.microsoft.com/v1.0/me?$select=mail,userPrincipalName',{
+            headers:{'Authorization':'Bearer '+msToken}
+          }).then(function(r){return r.json();}).then(function(me){
+            msConfig.email=me.mail||me.userPrincipalName||'';
+            localStorage.setItem(MS_KEY,JSON.stringify(msConfig));
+            updateMsBtn();
+          }).catch(function(){});
+          showToast('Outlook connected','Draft emails will be saved to your Outlook Drafts folder.',false,'success');
+          updateMsBtn();
+          resolve(msToken);
+        }
+      }catch(e){/* cross-origin until redirect back */}
+      if(popup.closed){clearInterval(poll);resolve(null);}
+    },500);
+  });
+}
+
+// ── EMAIL DRAFT ───────────────────────────────────────────
+var currentEmailItem = null;
+var emailHistory = [];
+
+function setSendBtn() {
+  var btn = document.getElementById('em-send-btn');
+  var tok = msToken || sessionStorage.getItem('fu_ms_token');
+  if (tok) { msToken = tok; }
+  if (msToken) {
+    btn.textContent = 'Save to Drafts';
+    btn.style.background = '#0078d4';
+    btn.style.borderColor = '#0078d4';
+    btn.style.color = '#fff';
+    btn.onclick = createOutlookDraft;
+  } else if (msConfig && msConfig.clientId) {
+    btn.textContent = 'Sign in & save draft';
+    btn.style.background = '#0078d4';
+    btn.style.borderColor = '#0078d4';
+    btn.style.color = '#fff';
+    btn.onclick = function() {
+      msAuthenticate().then(function() {
+        if (msToken && currentEmailItem) { runDraftFlow(currentEmailItem); }
+      });
+    };
+  } else {
+    btn.textContent = 'Connect Outlook first';
+    btn.style.background = '';
+    btn.style.borderColor = '';
+    btn.style.color = '';
+    btn.onclick = function() { closeEmailModal(); msLogin(); };
+  }
+}
+
+function runDraftFlow(item) {
+  document.getElementById('em-loading').style.display = 'block';
+  document.getElementById('em-form').style.display = 'none';
+  document.getElementById('em-modal-title').textContent = 'Writing your draft...';
+  document.getElementById('em-loading-step').textContent = 'Writing your draft...';
+  var tok = msToken || sessionStorage.getItem('fu_ms_token');
+  if (tok) { msToken = tok; }
+  if (msToken && (item.contactEmail || item.contact)) {
+    fetchHistoryAndGenerate(item);
+  } else {
+    callClaude(item, []);
+  }
+}
+
+function openEmailDraft(id) {
+  console.log('Step 1: openEmailDraft called, id=', id);
+  var item = items.find(function(i) { return i.id === id; });
+  if (!item) { console.log('ERROR item not found'); return; }
+  emailDraftItemId = id;
+  currentEmailItem = item;
+  emailHistory = [];
+  console.log('Step 2: showing loading state');
+  document.getElementById('em-loading').style.display = 'block';
+  document.getElementById('em-form').style.display = 'none';
+  document.getElementById('em-status').textContent = '';
+  document.getElementById('em-modal-title').textContent = 'Writing your draft...';
+  document.getElementById('em-loading-step').textContent = 'Writing your draft...';
+  document.getElementById('email-modal').classList.add('open');
+  setSendBtn();
+  var tok = msToken || sessionStorage.getItem('fu_ms_token');
+  if (tok) { msToken = tok; }
+  console.log('Token present:', !!msToken, '| Contact:', item.contact || '(none)');
+  if (msToken && item.contact) {
+    console.log('Step 3: fetching sent emails from Graph API for:', item.contact);
+    fetchHistoryAndGenerate(item);
+  } else {
+    console.log('Step 3: no token or no contact - calling Claude directly');
+    callClaude(item, []);
+  }
+}
+
+function fetchHistoryAndGenerate(item) {
+  document.getElementById('em-loading-step').textContent = 'Reading your email history with this contact...';
+  var searchTerm = item.contactEmail || item.contact || item.client;
+  var headers = { 'Authorization': 'Bearer ' + msToken, 'Prefer': 'outlook.body-content-type="text"' };
+  var sentUrl  = 'https://graph.microsoft.com/v1.0/me/mailFolders/SentItems/messages?$search=%22' + encodeURIComponent(searchTerm) + '%22&$top=6&$select=subject,body,receivedDateTime,from,toRecipients';
+  var inboxUrl = 'https://graph.microsoft.com/v1.0/me/mailFolders/Inbox/messages?$search=%22'     + encodeURIComponent(searchTerm) + '%22&$top=6&$select=subject,body,receivedDateTime,from,toRecipients';
+  console.log('Step 3: fetching sent + inbox for:', searchTerm);
+  Promise.all([
+    fetch(sentUrl,  { headers: headers }).then(function(r){ return r.ok ? r.json() : {value:[]}; }).catch(function(){ return {value:[]}; }),
+    fetch(inboxUrl, { headers: headers }).then(function(r){ return r.ok ? r.json() : {value:[]}; }).catch(function(){ return {value:[]}; })
+  ]).then(function(results) {
+    var sent     = (results[0].value || []).map(function(m){ m._dir='sent';     return m; });
+    var received = (results[1].value || []).map(function(m){ m._dir='received'; return m; });
+    var all = sent.concat(received).sort(function(a,b){
+      return new Date(b.receivedDateTime||0) - new Date(a.receivedDateTime||0);
+    }).slice(0, 5);
+    emailHistory = all;
+    console.log('Step 4: got', sent.length, 'sent,', received.length, 'received, using', all.length);
+    var msg = all.length > 0
+      ? ('Read ' + all.length + ' email' + (all.length > 1 ? 's' : '') + ' \u2014 writing your draft...')
+      : 'No previous emails found \u2014 writing your draft...';
+    document.getElementById('em-loading-step').textContent = msg;
+    callClaude(item, all);
+  }).catch(function(e) {
+    console.log('Step 4: fetch error:', e.message);
+    callClaude(item, []);
+  });
+}
+
+function stripEmail(html) {
+  return (html || '')
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<blockquote[\s\S]*?<\/blockquote>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/_{3,}[\s\S]*$/m, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+function callClaude(item, history) {
+  var firstName = item.contact ? item.contact.trim().split(' ')[0] : 'there';
+  var cand = item.candidate || null;
+  var reqDate = item.interviewRequestDate ? fmtDate(item.interviewRequestDate) : null;
+  var tpl = buildTemplate(item);
+
+  var purpose = ({
+    update:    'Give the client a warm search update. You are still actively working on it. Ask if anything has changed (brief, timelines, priorities).',
+    feedback:  'Chase feedback on ' + (cand || 'the submitted candidate') + '. Make it effortless to reply. Not pushy.',
+    candidate: 'Update the client that you have reached out to ' + (cand || 'the candidate') + ' about their interview request and are waiting on availability. Will follow up with dates.',
+    interviewing: 'Follow up with the client on a candidate who is currently in their interview process. Check on scheduling, next steps, or any feedback so far. Keep it brief.',
+    offer:        'Follow up with the client on an offer that has been made or is being prepared for a candidate. Check on timing, any updates, or whether the candidate has responded. Brief and professional.',
+    other:     'General follow-up. Warm, brief, professional.'
+  })[item.type] || 'General follow-up.';
+
+  var historyBlock = '';
+  if (history && history.length > 0) {
+    historyBlock = '\n\n--- EMAIL HISTORY WITH THIS CONTACT (most recent first) ---\n'
+      + 'Study these carefully and extract:\n'
+      + '1. SIGN-OFF: note exactly how the writer signs off (e.g. "Cheers, Bill" or "Best regards, Bill") and use that exact sign-off\n'
+      + '2. TONE: casual or formal? short punchy sentences or longer ones? any recurring phrases or habits?\n'
+      + '3. SPECIFICS: candidate names, salary figures, role details, feedback given or received - weave in anything relevant\n\n';
+    for (var i = 0; i < history.length; i++) {
+      var m = history[i];
+      var dir = m._dir === 'sent' ? 'YOU WROTE' : 'THEY WROTE';
+      var txt = stripEmail(m.body && m.body.content ? m.body.content : '').slice(0, 600);
+      historyBlock += '[' + (i+1) + '] ' + dir + ' | ' + (m.receivedDateTime||'').slice(0,10) + ' | Subject: ' + (m.subject||'') + '\n' + txt + '\n\n';
+    }
+    historyBlock += '--- END OF HISTORY ---';
+  }
+
+  var prompt = 'You are writing a short follow-up email on behalf of Bill, a recruitment consultant. Write it in first person as Bill.\n\n'
+    + 'CLIENT: ' + item.client + '\n'
+    + 'CONTACT: ' + firstName + '\n'
+    + 'PURPOSE: ' + purpose + '\n'
+    + (cand    ? 'CANDIDATE: ' + cand + '\n' : '')
+    + (reqDate ? 'INTERVIEW REQUEST DATE: ' + reqDate + '\n' : '')
+    + (item.notes ? 'NOTES: ' + item.notes + '\n' : '')
+    + historyBlock
+    + '\n\nRULES - follow these exactly:\n'
+    + '- Start with "Hi ' + firstName + ',"\n'
+    + '- Always end with exactly: "Thank you,\nBill"\n'
+    + '- Maximum 3 sentences in the body. Short. Direct. Human.\n'
+    + '- Write like a real person texting a colleague - not a formal business email\n'
+    + '- Zero filler: no "I hope this finds you well", no "please do not hesitate", no "I wanted to reach out", no "just checking in"\n'
+    + '- If there is email history, copy Bill\'s exact vocabulary, rhythm and casual style\n'
+    + '- If relevant details exist in the history (salary, candidate name, feedback), drop them in naturally in one sentence\n'
+    + '- Output ONLY the email body. Nothing else. No subject line. No notes.';
+
+  console.log('Step 5: calling Claude, history:', history.length, 'emails');
+
+  var claudeApiKey = localStorage.getItem(CLAUDE_KEY) || '';
+  if (!claudeApiKey) {
+    showDraft(item, tpl.body + '\n\n[Add your Anthropic API key in Connect Outlook → Settings to enable AI drafting]', tpl.subject, []);
+    return;
+  }
+
+  fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'anthropic-dangerous-direct-browser-access': 'true', 'x-api-key': claudeApiKey, 'anthropic-version': '2023-06-01' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 350,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    console.log('Step 6: Claude responded');
+    var text = (data.content && data.content[0] && data.content[0].text) ? data.content[0].text.trim() : '';
+    if (text) {
+      showDraft(item, text, tpl.subject, history);
+    } else {
+      console.log('Step 6: empty/error from Claude:', JSON.stringify(data.error||''));
+      showDraft(item, tpl.body, tpl.subject, []);
+    }
+  })
+  .catch(function(e) {
+    console.log('Step 6: Claude fetch error:', e.message);
+    showDraft(item, tpl.body, tpl.subject, []);
+  });
+}
+
+function showDraft(item, body, subject, history) {
+  console.log('Step 7: displaying AI draft, historyUsed=', history ? history.length : 0);
+  document.getElementById('em-loading').style.display = 'none';
+  document.getElementById('em-form').style.display = 'block';
+  document.getElementById('em-modal-title').textContent = 'Draft Email';
+  document.getElementById('em-to').value = item.contactEmail || '';
+  document.getElementById('em-subject').value = subject;
+  document.getElementById('em-body').value = body;
+  setSendBtn();
+  var badge = document.getElementById('em-ai-badge');
+  if (history && history.length > 0) {
+    var sentCount     = history.filter(function(m){ return m._dir==='sent';     }).length;
+    var recvCount     = history.filter(function(m){ return m._dir==='received'; }).length;
+    var badgeParts = [];
+    if(sentCount)  badgeParts.push(sentCount +  ' sent');
+    if(recvCount)  badgeParts.push(recvCount + ' received');
+    document.getElementById('em-ai-context').innerHTML = '&#x2736; Tone-matched from <strong>' + badgeParts.join(' + ') + '</strong> emails with this contact';
+    badge.style.display = 'flex';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function regenerateEmail() {
+  if (!currentEmailItem) return;
+  document.getElementById('em-loading').style.display = 'block';
+  document.getElementById('em-form').style.display = 'none';
+  document.getElementById('em-modal-title').textContent = 'Writing a fresh version...';
+  document.getElementById('em-loading-step').textContent = 'Writing a fresh version...';
+  callClaude(currentEmailItem, emailHistory);
+}
+
+function closeEmailModal() {
+  document.getElementById('email-modal').classList.remove('open');
+  emailDraftItemId = null;
+  currentEmailItem = null;
+  emailHistory = [];
+}
+
+function buildTemplate(item) {
+  var firstName = item.contact ? item.contact.trim().split(' ')[0] : 'there';
+  var cand = item.candidate || 'the candidate';
+  var sign = '\n\nThank you,\nBill';
+  var notes = item.notes ? '\n\n' + item.notes : '';
+  var subject, body;
+  if (item.type === 'update') {
+    subject = item.client + ' \u2014 Search Update';
+    body = 'Hi ' + firstName + ',\n\nI just wanted to touch base and let you know we are still actively working on the search for you.' + notes + '\n\nHow is everything coming along on your end? Has anything changed in terms of the brief or timelines?\n\nHappy to jump on a call if easier.' + sign;
+  } else if (item.type === 'feedback') {
+    subject = (item.candidate || 'Candidate') + ' \u2014 Your Feedback';
+    body = 'Hi ' + firstName + ',\n\nI hope you are well. I wanted to follow up on ' + cand + ' that I submitted to you recently.' + notes + '\n\nHave you had a chance to take a look? Even a quick yes or no is really helpful so I can keep things moving.\n\nLooking forward to hearing from you.' + sign;
+  } else if (item.type === 'candidate') {
+    subject = (item.candidate || 'Candidate') + ' \u2014 Availability Update';
+    body = 'Hi ' + firstName + ',\n\nJust a quick update \u2014 I have reached out to ' + cand + ' regarding your interview request and am waiting to hear back on their availability.' + notes + '\n\nI will follow up with you as soon as I have dates to share.\n\nSpeak soon.' + sign;
+  } else if (item.type === 'offer') {
+    subject = (item.candidate || 'Candidate') + ' — Offer Update';
+    body = 'Hi ' + firstName + ',\n\nJust wanted to check in on where things stand with the offer for ' + cand + '.' + notes + '\n\nHappy to help move things along if needed.\n\nSpeak soon.' + sign;
+  } else if (item.type === 'interviewing') {
+    subject = (item.candidate || 'Candidate') + ' — Interview Update';
+    body = 'Hi ' + firstName + ',\n\nJust wanted to check in on ' + cand + ' and see how the interview process is progressing.' + notes + '\n\nAny updates on next steps or timing?\n\nSpeak soon.' + sign;
+  } else {
+    subject = 'Following up \u2014 ' + item.client;
+    body = 'Hi ' + firstName + ',\n\nI just wanted to follow up and check in.' + notes + '\n\nLooking forward to hearing from you.' + sign;
+  }
+  return { subject: subject, body: body };
+}
+
+async function createOutlookDraft() {
+  if (!msToken) { msAuthenticate(); return; }
+  var to = document.getElementById('em-to').value.trim();
+  var subject = document.getElementById('em-subject').value.trim();
+  var body = document.getElementById('em-body').value;
+  var statusEl = document.getElementById('em-status');
+  if (!subject) { statusEl.textContent = 'Please enter a subject.'; statusEl.className = 'outlook-status err'; return; }
+  statusEl.textContent = 'Creating draft...'; statusEl.className = 'outlook-status ok';
+  try {
+    var resp = await fetch('https://graph.microsoft.com/v1.0/me/messages', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + msToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subject: subject, body: { contentType: 'Text', content: body }, toRecipients: to ? [{ emailAddress: { address: to } }] : [] })
+    });
+    if (resp.ok) {
+      statusEl.textContent = '\u2713 Draft saved to your Outlook Drafts folder!'; statusEl.className = 'outlook-status ok';
+      if (emailDraftItemId) { var it = items.find(function(x){ return x.id === emailDraftItemId; }); if (it) { it.lastContactAt = Date.now(); save(); renderTable(); } }
+      setTimeout(closeEmailModal, 2000);
+    } else {
+      var err = await resp.json().catch(function(){ return {}; });
+      statusEl.textContent = 'Error: ' + ((err.error && err.error.message) ? err.error.message : 'Could not create draft.'); statusEl.className = 'outlook-status err';
+    }
+  } catch(e) { statusEl.textContent = 'Network error: ' + e.message; statusEl.className = 'outlook-status err'; }
+}
+
+function copyEmailBody() {
+  var body = document.getElementById('em-body').value;
+  navigator.clipboard.writeText(body).then(function() { showToast('Copied', 'Email body copied to clipboard.', false, 'success'); });
+}
+
+
+
+// ── LOGIN ─────────────────────────────────────────────
+const PW_HASH = '35397a2e6f57a7b1989385bc211f862a5d50f9b1d9c2a3a9209b8d6278316f26';
+const PW_KEY  = 'fu_auth_v1';
+
+async function hashPassword(pw) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+async function doLogin() {
+  var pw = document.getElementById('login-pw').value;
+  var h  = await hashPassword(pw);
+  if (h === PW_HASH) {
+    sessionStorage.setItem(PW_KEY, '1');
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('login-error').textContent = '';
+  } else {
+    document.getElementById('login-error').textContent = 'Incorrect password. Try again.';
+    document.getElementById('login-pw').value = '';
+    document.getElementById('login-pw').focus();
+  }
+}
+
+function checkAuth() {
+  if (sessionStorage.getItem(PW_KEY) === '1') {
+    document.getElementById('login-screen').style.display = 'none';
+  }
+  // else login screen stays visible (default)
+}
+
+// ── INIT ──────────────────────────────────────────────────
+checkAuth();
+load();
+renderTable();
+checkNotifBanner();
+loadMsConfig();
+setTimeout(triggerDailyNotif, 400);
+['outlook-modal','email-modal'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',function(e){
+    if(e.target!==this) return;
+    if(id==='email-modal') closeEmailModal(); else closeOutlookModal();
+  });
+});
+</script>
+</body>
+</html>
