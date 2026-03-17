@@ -1267,7 +1267,7 @@ document.addEventListener('keydown',e=>{
   const tag=document.activeElement.tagName;
   if(e.key==='n'&&!e.ctrlKey&&!e.metaKey&&tag!=='INPUT'&&tag!=='TEXTAREA'&&tag!=='SELECT') openModal();
 });
-['modal','snooze-modal','done-modal'].forEach(id=>{
+['snooze-modal','done-modal'].forEach(id=>{
   document.getElementById(id).addEventListener('click',function(e){
     if(e.target!==this) return;
     if(id==='done-modal') closeDoneModal(false);
