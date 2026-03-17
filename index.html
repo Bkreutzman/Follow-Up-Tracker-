@@ -340,9 +340,9 @@ input[type=checkbox]{accent-color:var(--accent);width:13px;height:13px;cursor:po
         <label>Contact Email <span style="color:var(--muted);font-weight:400;text-transform:none;font-size:9px;">(used to search your inbox for tone matching)</span></label>
         <input type="email" id="f-contact-email" placeholder="e.g. jane@acmecorp.com">
       </div>
-      <div class="field">
-        <label>Candidate Name</label>
-        <input type="text" id="f-candidate" placeholder="e.g. Alex Johnson (leave blank if not candidate-specific)">
+            <div class="field">
+        <label>Candidates <button type="button" class="btn btn-sm" onclick="addCandidateRow()" style="margin-left:8px;">+ Add</button></label>
+        <div id="f-candidates"></div>
       </div>
       <div class="field-row">
         <div class="field">
@@ -553,18 +553,19 @@ let editingId = null;
 let collapsedGroups = new Set();
 
 // ── STORAGE ────────────────────────────────────────────────
+function migrateItem(item){if(!item.candidates){item.candidates=item.candidate?[{name:item.candidate,phone:'',email:''}]:[];delete item.candidate;}return item;}
 function load(){
   var DEFAULT_DATA = [{"client":"The Lynch Law Group","contact":"Cara Londino","contactEmail":"clondino@lynchlaw-group.com","candidate":"","type":"update","priority":"medium","date":"2026-03-17","recurDays":"7","notes":"","interviewRequestDate":null,"id":"mmp0l6y6z8k0f","done":false,"createdAt":1773413464686,"lastContactAt":1773419166045},{"client":"Kimbrough Legal, PLLC","contact":"Creseida Greene","contactEmail":"talent@kimbroughlegal.com","candidate":"Tim Daniel","type":"interviewing","priority":"medium","date":"2026-03-18","recurDays":null,"notes":"They are having a second round interview with him on Tuesday 3/17 at 2:30pm","interviewRequestDate":null,"id":"mmp478mjpexq0","done":false,"createdAt":1773419532139,"lastContactAt":1773419775260},{"client":"Berkowitz, Lichtstein, Kuritsky, Giasullo & Gross, LLC","contact":"Stewart Leviss","contactEmail":"sleviss@blkgg.com","candidate":"","type":"update","priority":"low","date":"2026-03-23","recurDays":"7","notes":"","interviewRequestDate":null,"id":"mmp5iwclkq0t2","done":false,"createdAt":1773421755717},{"client":"Macdonald & Cody, LLP","contact":"Cecilia White","contactEmail":"cwhite@macdonaldcody.com","candidate":"","type":"update","priority":"medium","date":"2026-03-18","recurDays":"7","notes":"","interviewRequestDate":null,"id":"mmp5jpsn9ps1z","done":false,"createdAt":1773421793879},{"client":"Harman Claytor Corrigan & Wellman","contact":"Jeremy Capps","contactEmail":"jcapps@hccw.com","candidate":"Andrew Selman","type":"interviewing","priority":"high","date":"2026-03-17","recurDays":null,"notes":"in person interview on Friday at 1pm","interviewRequestDate":null,"id":"mmp5mikh4pjaa","done":false,"createdAt":1773421924481,"doneAt":null,"doneNote":null,"lastContactAt":1773666888785},{"client":"Berenson & Associates","contact":"Racehl Berenson","contactEmail":"rachel@nmjusticelaw.com","candidate":"Anthony Alden","type":"feedback","priority":"medium","date":"2026-03-16","recurDays":null,"notes":"","interviewRequestDate":null,"id":"mmp5pz3jwpkqn","done":false,"createdAt":1773422085871,"lastContactAt":1773673046613},{"client":"McLain & Merritt, P.C.","contact":"Chloe Reid","contactEmail":"creid@mmatllaw.com","candidate":"Connor Behrend","type":"interviewing","priority":"high","date":"2026-03-19","recurDays":null,"notes":"In person on Friday 3/13. 2 partners were unavailable on Friday so they will be speaking to him this week as well. Went well Friday but want the rest of our team to speak with him","interviewRequestDate":null,"id":"mmp647j3u2sgo","done":false,"createdAt":1773422749983,"lastContactAt":1773667459285},{"client":"Robinson, Kriger & McCallum","contact":"Tom Quartararo","contactEmail":"tq@rkmlegal.com","candidate":"","type":"update","priority":"medium","date":"2026-03-18","recurDays":"7","notes":"","interviewRequestDate":null,"id":"mmp693fxl5emd","done":false,"createdAt":1773422977965},{"client":"Goldblatt + Singer","contact":"Sandy Frolik","contactEmail":"sfrolik@stlinjurylaw.com","candidate":"","type":"update","priority":"medium","date":"2026-03-17","recurDays":null,"notes":"","interviewRequestDate":null,"id":"mmp7a13bdyxy2","done":false,"createdAt":1773424701191},{"client":"Messerli Kramer, P.A.","contact":"Alysa Hannula","contactEmail":"ahannula@MesserliKramer.com","candidate":"James Adams","type":"update","priority":"low","date":"2026-03-19","recurDays":null,"notes":"5 yr.+ plus Corporate MA Associates for Minneapolis","interviewRequestDate":null,"id":"mmp8bqzkfzo53","done":false,"createdAt":1773426461024},{"client":"Messerli Kramer, P.A.","contact":"Alysa Hannula","contactEmail":"ahannula@MesserliKramer.com","candidate":"James Adams","type":"interviewing","priority":"low","date":"2026-03-30","recurDays":null,"notes":"Business practice is out starting 03/16 for a 2 week spring break hiatus.","interviewRequestDate":null,"id":"mmp8c5vpfvitp","done":false,"createdAt":1773426480325,"doneAt":null,"doneNote":null,"lastContactAt":null},{"client":"Berenson & Associates","contact":"Racehl Berenson","contactEmail":"rachel@nmjusticelaw.com","candidate":"Christopher Mandonado","type":"interviewing","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"Pending time for 3/23.","interviewRequestDate":null,"id":"mmp8e5dl0euy2","done":false,"createdAt":1773426572985,"doneAt":null,"doneNote":null,"lastContactAt":null},{"client":"AES Consulting Engineers","contact":"Kimery Parker","contactEmail":"Kimery.Parker@aesva.com","candidate":"Benjamin Mills","type":"feedback","priority":"medium","date":"2026-03-17","recurDays":null,"notes":"Subbed on 3/12/26- Relo candidate","interviewRequestDate":null,"id":"mmp8h2oevii79","done":false,"createdAt":1773426709454},{"client":"Lutco, Inc.","contact":"Angela Fredette","contactEmail":"afredette@lutco.com","candidate":"","type":"update","priority":"medium","date":"2026-03-17","recurDays":null,"notes":"","interviewRequestDate":null,"id":"mmp8iwgrbuxrg","done":false,"createdAt":1773426794715},{"client":"Tanenbaum Keale LLP","contact":"Thomas Robertson","contactEmail":"trobertson@tktrial.com","candidate":"Francis Howell","type":"candidate","priority":"high","date":"2026-03-16","recurDays":null,"notes":"They wanted to do an in-person. He is not able to make that work, we asked if he could do a phone call.","interviewRequestDate":"2026-03-10","id":"mmp8s3b9kniu0","done":false,"createdAt":1773427223493},{"client":"OnderLaw","contact":"Jim Onder Jr.","contactEmail":"onderjr@onderlaw.com","candidate":"","type":"update","priority":"medium","date":"2026-03-18","recurDays":null,"notes":"","interviewRequestDate":null,"id":"mmp90hfz5f4el","done":false,"createdAt":1773427615055},{"id":"mmth5ob6114fo","client":"Williams Law Group","contact":"Jasmine H","contactEmail":"jasmine@awilliamslawgroup.com","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob68bz59","client":"Berkowitz, Lichtstein, Kuritsky, Gia","contact":"","contactEmail":"","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6090kb","client":"Kolmogorov Law","contact":"Pavel Kolmogorov","contactEmail":"pavel@kolmogorovlaw.com","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6yhcyh","client":"Harman Claytor Corrigan & Wellm","contact":"Jeremy Capps","contactEmail":"jcapps@hccw.com","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6prvfx","client":"Porter Scott","contact":"Allison Bateman","contactEmail":"abateman@porterscott.com","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6w0fqx","client":"Ruggiero Law Offices LLC","contact":"James Ruggiero","contactEmail":"jjr@paolilaw.com","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6u7xcz","client":"Gearhart Law, LLC","contact":"Richard Gearhart","contactEmail":"rgearhart@gearhartlaw.com","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6acreh","client":"Stone Busailah, LLP","contact":"Muna Busailah","contactEmail":"m.busailah@police-defense.com","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6xcpb4","client":"BatesCarter","contact":"Randy Jessup","contactEmail":"rjessup@batescarter.com","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6kjh59","client":"The RiverStone Group","contact":"Ann-Marie Forrester","contactEmail":"Ann-Marie_Forrester@trg.com","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob607r8n","client":"Concorde Investment Services","contact":"Danielle Delongchamp","contactEmail":"ddelongchamp@concordeis.com","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6fwtup","client":"The Keller Firm","contact":"Caitlin Ferguson","contactEmail":"caitlin@kellerfirm.com","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6m0k7p","client":"KANOSKI BRESNEY","contact":"Teresa Prefountain","contactEmail":"teresap@kanoski.com","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6u2u5q","client":"Blades & Rosenfeld, P.A.","contact":"Gynette Parker","contactEmail":"gparker@blades-law.com","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6dybzp","client":"The Hustead Law Firm","contact":"Jeffrey Hegewald","contactEmail":"jah@thlf.com","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob65zg82","client":"USA Mortgage","contact":"","contactEmail":"","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6sdils","client":"Hermes Abrasives, LTD.","contact":"Amber Lynch","contactEmail":"amberlynch@hermesabrasives.com","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob67r11z","client":"Roberts Perryman P.C.","contact":"Chandler Atkins","contactEmail":"catkins@robertsperryman.com","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6da20s","client":"Law Offices of Bonnie M. Benson","contact":"Bonnie Benson","contactEmail":"bonnie@bonniebenson.com","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6aak7h","client":"Arnold & Smith, PLLC","contact":"Daniel Lombardo","contactEmail":"djl@arnoldsmithlaw.com","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6k305a","client":"Kirton McConkie PC","contact":"Kathy Folkersen","contactEmail":"kfolkersen@kmclaw.com","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6pfcjh","client":"Kramon & Graham","contact":"Katy Schmidt","contactEmail":"kschmidt@kg-law.com","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6flwx8","client":"Bank South Mortgage","contact":"Blake Ingram","contactEmail":"jingram@banksouthmortgage.com","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6aid8z","client":"Lyle Law LLC","contact":"Kristopher Lyle","contactEmail":"kristopher@lylelawllc.com","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6w9aak","client":"First Century Bank","contact":"Rachel Wilson","contactEmail":"Rachel.Willson@myfcbusa.com","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob605xbu","client":"Evers & Company CPA's","contact":"Wendy Renner","contactEmail":"wrenner@everscpas.com","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob63zdek","client":"Madison County Bank","contact":"Chris Brummels","contactEmail":"chrisb@gomcbank.com","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6wo1if","client":"Kjar McKenna & Stockalper LLP","contact":"Careese Bradley","contactEmail":"cbradley@kmslegal.com","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6pwwco","client":"Research Planning, Inc.","contact":"Jacqui Michel","contactEmail":"jmichel@researchplanning.com","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6n8znd","client":"WL Plastics","contact":"Holly Affleck","contactEmail":"holly.affleck@wlplastics.com","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob62vk0i","client":"Alvarez law offices","contact":"Steven Alvarez","contactEmail":"steven@gowithalvarez.com","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6zhugy","client":"Jaramillo Accounting Group LLC","contact":"Audrey Jaramillo","contactEmail":"audrey@jag.cpa","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6bluw3","client":"Baskerville-Donovan, Inc. Engineers","contact":"","contactEmail":"","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null},{"id":"mmth5ob6c7oh3","client":"Kanner & Pintaluga","contact":"Andres Exposito","contactEmail":"aexposito@kpattorney.com","candidate":"","type":"other","priority":"medium","date":"2026-03-23","recurDays":null,"notes":"","done":false,"createdAt":1773683158866,"interviewRequestDate":null}];
   try{
     var stored = localStorage.getItem(SK);
     if(stored){
-      items = JSON.parse(stored) || [];
+      items = (JSON.parse(stored) || []).map(migrateItem);
     } else {
-      items = DEFAULT_DATA;
+      items = DEFAULT_DATA.map(migrateItem);
       save();
     }
   }catch{
-    items = DEFAULT_DATA;
+    items = DEFAULT_DATA.map(migrateItem);
     save();
   }
 }
@@ -616,7 +617,7 @@ function rowClass(item){
 function getFiltered(){
   const q=document.getElementById('search').value.toLowerCase();
   return items.filter(item=>{
-    const ms=!q||[item.client,item.notes,item.contact,item.candidate].some(f=>f&&f.toLowerCase().includes(q));
+    const ms=!q||[item.client,item.notes,item.contact,...(item.candidates||[]).map(c=>c.name)].some(f=>f&&f.toLowerCase().includes(q));
     if(!ms) return false;
     if(currentFilter==='done') return item.done;
     if(item.done) return false;
@@ -682,7 +683,7 @@ function renderRow(item){
     <td>${healthBadge(item.client)}</td>
     <td>
       <div class="client-name">${esc(item.client)}${item.recurDays?`<span class="recur-badge">↻ ${item.recurDays}d</span>`:''}</div>
-      ${item.candidate?`<div class="candidate-sub">↳ ${esc(item.candidate)}</div>`:''}
+      ${(item.candidates||[]).map(c=>`<div class="candidate-sub">↳ ${esc(c.name)}${c.phone?' · '+esc(c.phone):''}${c.email?' · '+esc(c.email):''}</div>`).join('')}
       ${item.contact?`<div class="contact-sub">${esc(item.contact)}</div>`:''}
     </td>
     <td>${typeTag(item.type)}</td>
@@ -720,7 +721,7 @@ function updateDonePanel(){
   const sow=startOfWeek();
   const done=items.filter(i=>i.done&&i.doneAt&&new Date(i.doneAt)>=new Date(sow+'T00:00:00'));
   document.getElementById('done-panel-items').innerHTML=done.length
-    ? done.map(i=>`<div class="done-chip"><strong>${esc(i.client)}</strong>${i.candidate?' – '+esc(i.candidate):''} ${typeTag(i.type)}</div>`).join('')
+    ? done.map(i=>`<div class="done-chip"><strong>${esc(i.client)}</strong>${(i.candidates&&i.candidates.length)?' – '+esc(i.candidates.map(c=>c.name).join(', ')):''} ${typeTag(i.type)}</div>`).join('')
     : '<span style="color:var(--muted);font-size:11px;">Nothing completed yet this week.</span>';
 }
 
@@ -799,15 +800,29 @@ function toggleInterviewField(){
   field.style.display = type === 'candidate' ? 'block' : 'none';
   if(type !== 'candidate') document.getElementById('f-interview-date').value = '';
 }
+      function addCandidateRow(name,phone,email){
+      var c=document.getElementById('f-candidates');
+      var d=document.createElement('div');
+      d.style.cssText='display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;margin-bottom:6px;';
+      d.innerHTML='<input type="text" placeholder="Name" value="'+(name||'').replace(/"/g,'&quot;')+'" style="padding:6px 8px;border:2px solid var(--border);border-radius:8px;font-family:inherit;font-size:12px;background:#fff8f8;color:var(--text);outline:none;"><input type="text" placeholder="Phone" value="'+(phone||'').replace(/"/g,'&quot;')+'" style="padding:6px 8px;border:2px solid var(--border);border-radius:8px;font-family:inherit;font-size:12px;background:#fff8f8;color:var(--text);outline:none;"><input type="email" placeholder="Email" value="'+(email||'').replace(/"/g,'&quot;')+'" style="padding:6px 8px;border:2px solid var(--border);border-radius:8px;font-family:inherit;font-size:12px;background:#fff8f8;color:var(--text);outline:none;"><button type="button" onclick="this.parentNode.remove()" class="btn btn-sm btn-danger" style="padding:4px 8px;">✕</button>';
+      c.appendChild(d);
+    }
+    function getCandidates(){
+      var rows=document.getElementById('f-candidates').children;
+      var arr=[];
+      for(var i=0;i<rows.length;i++){var ins=rows[i].querySelectorAll('input');if(ins[0].value.trim())arr.push({name:ins[0].value.trim(),phone:ins[1].value.trim(),email:ins[2].value.trim()});}
+      return arr;
+    }
 function openModal(){
   editingId=null;
   document.getElementById('modal-title').textContent='New Follow-Up';
   document.getElementById('modal-dupe-btn').style.display='none';
-  ['f-client','f-contact','f-contact-email','f-candidate','f-notes','f-interview-date'].forEach(id=>document.getElementById(id).value='');
+  ['f-client','f-contact','f-contact-email','f-notes','f-interview-date'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('interview-date-field').style.display='none';
   document.getElementById('f-type').value='update';
   document.getElementById('f-priority').value='medium';
   document.getElementById('f-date').value=today();
+    document.getElementById('f-candidates').innerHTML='';
   document.getElementById('f-recur').value='';
   document.getElementById('modal').classList.add('open');
   setTimeout(()=>document.getElementById('f-client').focus(),50);
@@ -820,7 +835,7 @@ function openEdit(id){
   document.getElementById('f-client').value=item.client;
   document.getElementById('f-contact').value=item.contact||'';
   document.getElementById('f-contact-email').value=item.contactEmail||'';
-  document.getElementById('f-candidate').value=item.candidate||'';
+  document.getElementById('f-candidates').innerHTML='';(item.candidates||[]).forEach(function(c){addCandidateRow(c.name,c.phone,c.email);});
   document.getElementById('f-type').value=item.type;
   document.getElementById('f-priority').value=item.priority;
   document.getElementById('f-date').value=item.date;
@@ -839,7 +854,7 @@ function saveItem(){
     client,
     contact:document.getElementById('f-contact').value.trim(),
     contactEmail:document.getElementById('f-contact-email').value.trim(),
-    candidate:document.getElementById('f-candidate').value.trim(),
+    candidates:getCandidates(),
     type:document.getElementById('f-type').value,
     priority:document.getElementById('f-priority').value,
     date,
@@ -906,7 +921,7 @@ function closeDoneModal(doMark){
 function handleRecur(item){
   if(!item.recurDays) return;
   items.push({
-    client:item.client,contact:item.contact,candidate:item.candidate,
+    client:item.client,contact:item.contact,candidates:item.candidates,
     type:item.type,priority:item.priority,
     date:addDays(today(),parseInt(item.recurDays)),
     recurDays:item.recurDays,notes:item.notes,
@@ -926,7 +941,7 @@ function deleteItem(id){
 function exportCSV(){
   const cols=['Client','Contact','Candidate','Type','Priority','Due Date','Interview Request Date','Status','Notes','Outcome Note','Recurring'];
   const rows=items.map(i=>[
-    i.client,i.contact||'',i.candidate||'',i.type,i.priority,i.date,
+    i.client,i.contact||'',(i.candidates||[]).map(c=>c.name).join('; '),i.type,i.priority,i.date,
     i.done?'Done':'Pending',
     i.interviewRequestDate||'',
     (i.notes||'').replace(/"/g,'""'),
@@ -1297,7 +1312,7 @@ function stripEmail(html) {
 
 function callClaude(item, history) {
   var firstName = item.contact ? item.contact.trim().split(' ')[0] : 'there';
-  var cand = item.candidate || null;
+  var cand = (item.candidates&&item.candidates.length)?item.candidates[0].name:null;
   var reqDate = item.interviewRequestDate ? fmtDate(item.interviewRequestDate) : null;
   var tpl = buildTemplate(item);
 
@@ -1419,7 +1434,7 @@ function closeEmailModal() {
 
 function buildTemplate(item) {
   var firstName = item.contact ? item.contact.trim().split(' ')[0] : 'there';
-  var cand = item.candidate || 'the candidate';
+  var cand = (item.candidates&&item.candidates.length)?item.candidates[0].name:'the candidate';
   var sign = '\n\nThank you,\nBill';
   var notes = item.notes ? '\n\n' + item.notes : '';
   var subject, body;
@@ -1427,16 +1442,16 @@ function buildTemplate(item) {
     subject = item.client + ' \u2014 Search Update';
     body = 'Hi ' + firstName + ',\n\nI just wanted to touch base and let you know we are still actively working on the search for you.' + notes + '\n\nHow is everything coming along on your end? Has anything changed in terms of the brief or timelines?\n\nHappy to jump on a call if easier.' + sign;
   } else if (item.type === 'feedback') {
-    subject = (item.candidate || 'Candidate') + ' \u2014 Your Feedback';
+    subject = (cand || 'Candidate') + ' \u2014 Your Feedback';
     body = 'Hi ' + firstName + ',\n\nI hope you are well. I wanted to follow up on ' + cand + ' that I submitted to you recently.' + notes + '\n\nHave you had a chance to take a look? Even a quick yes or no is really helpful so I can keep things moving.\n\nLooking forward to hearing from you.' + sign;
   } else if (item.type === 'candidate') {
-    subject = (item.candidate || 'Candidate') + ' \u2014 Availability Update';
+    subject = (cand || 'Candidate') + ' \u2014 Availability Update';
     body = 'Hi ' + firstName + ',\n\nJust a quick update \u2014 I have reached out to ' + cand + ' regarding your interview request and am waiting to hear back on their availability.' + notes + '\n\nI will follow up with you as soon as I have dates to share.\n\nSpeak soon.' + sign;
   } else if (item.type === 'offer') {
-    subject = (item.candidate || 'Candidate') + ' — Offer Update';
+    subject = (cand || 'Candidate') + ' — Offer Update';
     body = 'Hi ' + firstName + ',\n\nJust wanted to check in on where things stand with the offer for ' + cand + '.' + notes + '\n\nHappy to help move things along if needed.\n\nSpeak soon.' + sign;
   } else if (item.type === 'interviewing') {
-    subject = (item.candidate || 'Candidate') + ' — Interview Update';
+    subject = (cand || 'Candidate') + ' — Interview Update';
     body = 'Hi ' + firstName + ',\n\nJust wanted to check in on ' + cand + ' and see how the interview process is progressing.' + notes + '\n\nAny updates on next steps or timing?\n\nSpeak soon.' + sign;
   } else {
     subject = 'Following up \u2014 ' + item.client;
