@@ -98,6 +98,20 @@ tr.group-header td{padding:14px 12px 4px;font-size:10px;text-transform:uppercase
 .client-name{font-family:'DM Serif Display',serif;font-size:15px;color:var(--text);}
 .candidate-sub{color:var(--accent2);font-size:10px;margin-top:1px;}
 .contact-sub{color:var(--muted);font-size:10px;margin-top:1px;}
+  .interview-section{margin-top:8px;padding:8px;background:#f9f0ff;border:1px solid #d9b8ff;border-radius:6px;}
+.interview-toggle-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);margin-bottom:0;}
+.interview-toggle-row input[type=checkbox]{width:14px;height:14px;accent-color:#7c3aed;cursor:pointer;}
+.interview-rounds{margin-top:8px;display:none;}
+.interview-rounds.visible{display:block;}
+.interview-round-block{background:#fff;border:1px solid #d9b8ff;border-radius:6px;padding:8px;margin-bottom:6px;}
+.interview-round-label{font-size:11px;font-weight:700;color:#7c3aed;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.04em;}
+.interview-round-fields{display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:6px;align-items:center;}
+.interview-round-fields input,.interview-round-fields select{padding:5px 7px;border:1px solid #ccc;border-radius:6px;font-size:12px;font-family:inherit;background:#fff8f8;color:var(--text);outline:none;width:100%;box-sizing:border-box;}
+.add-round-btn{margin-top:6px;background:none;border:1px dashed #a78bfa;border-radius:6px;padding:4px 10px;color:#7c3aed;font-size:12px;cursor:pointer;width:100%;}
+.add-round-btn:hover{background:#f3e8ff;}
+.remove-round-btn{background:#e74c3c;color:#fff;border:none;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:12px;line-height:1;}
+.remove-round-btn:hover{background:#c0392b;}
+.interview-sub{font-size:11px;color:#7c3aed;margin-top:1px;padding-left:12px;}
 
 .tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:10px;text-transform:uppercase;letter-spacing:0.07em;font-weight:500;border:1.5px solid;}
 .tag-update{background:#e8f4ff;color:#1a56b0;border-color:#b3d4f7;}
@@ -683,7 +697,7 @@ function renderRow(item){
     <td>${healthBadge(item.client)}</td>
     <td>
       <div class="client-name">${esc(item.client)}${item.recurDays?`<span class="recur-badge">↻ ${item.recurDays}d</span>`:''}</div>
-      ${(item.candidates||[]).map(c=>`<div class="candidate-sub">↳ ${esc(c.name)}${c.phone?' · '+esc(c.phone):''}${c.email?' · '+esc(c.email):''}</div>`).join('')}
+      ${(item.candidates||[]).map(c=>`<div class="candidate-sub">↳ ${esc(c.name)}${c.phone?' · '+esc(c.phone):''}${c.email?' · '+esc(c.email):''}${(c.interviewing&&c.interviews&&c.interviews.length)?c.interviews.map(iv=>`<div class="interview-sub">R${iv.round}: ${fmtInterviewDate(iv.date)} at ${fmtInterviewTime(iv.time)} ${esc(iv.timezone||'')} (${fmtLabel(iv.format)})</div>`).join(''):''}</div>`).join('')}
       ${item.contact?`<div class="contact-sub">${esc(item.contact)}</div>`:''}
     </td>
     <td>${typeTag(item.type)}</td>
@@ -800,18 +814,105 @@ function toggleInterviewField(){
   field.style.display = type === 'candidate' ? 'block' : 'none';
   if(type !== 'candidate') document.getElementById('f-interview-date').value = '';
 }
-      function addCandidateRow(name,phone,email){
-      var c=document.getElementById('f-candidates');
-      var d=document.createElement('div');
-      d.style.cssText='display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;margin-bottom:6px;';
-      d.innerHTML='<input type="text" placeholder="Name" value="'+(name||'').replace(/"/g,'&quot;')+'" style="padding:6px 8px;border:2px solid var(--border);border-radius:8px;font-family:inherit;font-size:12px;background:#fff8f8;color:var(--text);outline:none;"><input type="text" placeholder="Phone" value="'+(phone||'').replace(/"/g,'&quot;')+'" style="padding:6px 8px;border:2px solid var(--border);border-radius:8px;font-family:inherit;font-size:12px;background:#fff8f8;color:var(--text);outline:none;"><input type="email" placeholder="Email" value="'+(email||'').replace(/"/g,'&quot;')+'" style="padding:6px 8px;border:2px solid var(--border);border-radius:8px;font-family:inherit;font-size:12px;background:#fff8f8;color:var(--text);outline:none;"><button type="button" onclick="this.parentNode.remove()" class="btn btn-sm btn-danger" style="padding:4px 8px;">✕</button>';
-      c.appendChild(d);
+      function addCandidateRow(name,phone,email,interviewing,interviews){
+    var c=document.getElementById('f-candidates');
+    var d=document.createElement('div');
+    d.className='candidate-entry';
+    d.style.cssText='margin-bottom:10px;border:1px solid var(--border);border-radius:8px;padding:8px;background:#fffafa;';
+    var q=function(s){return (s||'').replace(/"/g,'&quot;');};
+    d.innerHTML=''
+    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;margin-bottom:6px;">'
+    +'<input type="text" placeholder="Name" value="'+q(name)+'" style="padding:6px 8px;border:2px solid var(--border);border-radius:8px;font-family:inherit;font-size:12px;background:#fff8f8;color:var(--text);outline:none;" class="c-name">'
+    +'<input type="text" placeholder="Phone" value="'+q(phone)+'" style="padding:6px 8px;border:2px solid var(--border);border-radius:8px;font-family:inherit;font-size:12px;background:#fff8f8;color:var(--text);outline:none;" class="c-phone">'
+    +'<input type="email" placeholder="Email" value="'+q(email)+'" style="padding:6px 8px;border:2px solid var(--border);border-radius:8px;font-family:inherit;font-size:12px;background:#fff8f8;color:var(--text);outline:none;" class="c-email">'
+    +'<button type="button" onclick="this.closest(\'.candidate-entry\').remove()" class="btn btn-sm btn-danger" style="padding:4px 8px;">x</button>'
+    +'</div>'
+    +'<div class="interview-section">'
+    +'<div class="interview-toggle-row">'
+    +'<input type="checkbox" class="c-interviewing"'+(interviewing?' checked':'')+' onchange="toggleInterviewing(this)">'
+    +'<label style="cursor:pointer;font-size:12px;" onclick="this.previousElementSibling.click()">Interviewing?</label>'
+    +'</div>'
+    +'<div class="interview-rounds'+(interviewing?' visible':'')+'">'  
+    +'<button type="button" class="add-round-btn" onclick="addInterviewRound(this)">+ Add Round</button>'
+    +'</div>'
+    +'</div>';
+    c.appendChild(d);
+    if(interviewing&&interviews&&interviews.length){
+    var roundsDiv=d.querySelector('.interview-rounds');
+    interviews.forEach(function(iv){addInterviewRound(roundsDiv.querySelector('.add-round-btn'),iv);});
     }
-    function getCandidates(){
-      var rows=document.getElementById('f-candidates').children;
-      var arr=[];
-      for(var i=0;i<rows.length;i++){var ins=rows[i].querySelectorAll('input');if(ins[0].value.trim())arr.push({name:ins[0].value.trim(),phone:ins[1].value.trim(),email:ins[2].value.trim()});}
-      return arr;
+    }
+  function toggleInterviewing(cb){
+    var rounds=cb.closest('.interview-section').querySelector('.interview-rounds');
+    rounds.classList.toggle('visible',cb.checked);
+    }
+    function addInterviewRound(btn,data){
+    var roundsDiv=btn.closest('.interview-rounds');
+    var existing=roundsDiv.querySelectorAll('.interview-round-block').length;
+    if(existing>=3)return;
+    var num=existing+1;
+    var block=document.createElement('div');
+    block.className='interview-round-block';
+    var d=data||{};
+    var tzOpts=['ET','CT','MT','PT','AKT','HT'].map(function(z){return '<option value="'+z+'"'+(d.timezone===z?' selected':'')+'>'+z+'</option>';}).join('');
+    var fmtOpts=[['phone','Phone Call'],['zoom','Zoom'],['in-person','In-Person']].map(function(f){return '<option value="'+f[0]+'"'+(d.format===f[0]?' selected':'')+'>'+f[1]+'</option>';}).join('');
+    block.innerHTML=''
+    +'<div class="interview-round-label">Round '+num+'</div>'
+    +'<div class="interview-round-fields">'
+    +'<input type="date" class="iv-date" value="'+(d.date||'')+'">'
+    +'<input type="time" class="iv-time" value="'+(d.time||'')+'">'
+    +'<select class="iv-tz">'+tzOpts+'</select>'
+    +'<select class="iv-fmt">'+fmtOpts+'</select>'
+    +'<button type="button" class="remove-round-btn" onclick="this.closest(\'.interview-round-block\').remove();renumberRounds(this.closest(\'.interview-rounds\'))">x</button>'
+    +'</div>';
+    roundsDiv.insertBefore(block,btn);
+    if(roundsDiv.querySelectorAll('.interview-round-block').length>=3)btn.style.display='none';
+    }
+    function renumberRounds(roundsDiv){
+    var blocks=roundsDiv.querySelectorAll('.interview-round-block');
+    blocks.forEach(function(b,i){b.querySelector('.interview-round-label').textContent='Round '+(i+1);});
+    var btn=roundsDiv.querySelector('.add-round-btn');
+    if(btn)btn.style.display=blocks.length>=3?'none':'block';
+    }
+    function fmtInterviewTime(time){
+    if(!time)return '';
+    var parts=time.split(':');
+    var h=parseInt(parts[0]),m=parts[1];
+    var ampm=h>=12?'PM':'AM';
+    h=h%12||12;
+    return h+':'+m+' '+ampm;
+    }
+    function fmtInterviewDate(date){
+    if(!date)return '';
+    var months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var parts=date.split('-');
+    return months[parseInt(parts[1])-1]+' '+parseInt(parts[2]);
+    }
+    function fmtLabel(fmt){
+    return fmt==='phone'?'Phone Call':fmt==='zoom'?'Zoom':fmt==='in-person'?'In-Person':fmt||'';
+    }  
+  function getCandidates(){
+    var entries=document.getElementById('f-candidates').querySelectorAll('.candidate-entry');
+    var arr=[];
+    entries.forEach(function(d){
+    var name=d.querySelector('.c-name').value.trim();
+    var phone=d.querySelector('.c-phone').value.trim();
+    var email=d.querySelector('.c-email').value.trim();
+    if(!name&&!phone&&!email)return;
+    var interviewing=d.querySelector('.c-interviewing').checked;
+    var interviews=[];
+    d.querySelectorAll('.interview-round-block').forEach(function(b,i){
+    interviews.push({
+    round:i+1,
+    date:b.querySelector('.iv-date').value,
+    time:b.querySelector('.iv-time').value,
+    timezone:b.querySelector('.iv-tz').value,
+    format:b.querySelector('.iv-fmt').value
+    });
+    });
+    arr.push({name:name,phone:phone,email:email,interviewing:interviewing,interviews:interviews});
+    });
+    return arr;
     }
 function openModal(){
   editingId=null;
@@ -835,7 +936,7 @@ function openEdit(id){
   document.getElementById('f-client').value=item.client;
   document.getElementById('f-contact').value=item.contact||'';
   document.getElementById('f-contact-email').value=item.contactEmail||'';
-  document.getElementById('f-candidates').innerHTML='';(item.candidates||[]).forEach(function(c){addCandidateRow(c.name,c.phone,c.email);});
+  document.getElementById('f-candidates').innerHTML='';(item.candidates||[]).forEach(function(c){addCandidateRow(c.name,c.phone,c.email,c.interviewing,c.interviews);});
   document.getElementById('f-type').value=item.type;
   document.getElementById('f-priority').value=item.priority;
   document.getElementById('f-date').value=item.date;
