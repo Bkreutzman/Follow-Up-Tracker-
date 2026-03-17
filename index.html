@@ -712,7 +712,7 @@ function renderRow(item){
     <td onclick="event.stopPropagation()">
       <div class="row-actions">
         ${!item.done?`<button class="btn btn-sm" onclick="openSnooze('${item.id}')" title="Snooze">⏱</button>`:''}
-        ${!item.done?`<button class="btn btn-sm" style="color:var(--blue);border-color:var(--blue)" onclick="openEmailDraft('${item.id}')" title="Draft Outlook email">✉</button>`:''}
+        ${!item.done?`<button class="btn btn-sm" style="color:var(--blue);border-color:var(--blue)" onclick="openProvideUpdate('${item.id}')" title="Provide Update">📋</button>`:''}
         ${!item.done?`<button class="btn btn-sm btn-green" onclick="openDoneModal('${item.id}')" title="Mark done">✓</button>`:''}
         <button class="btn btn-sm btn-danger" onclick="deleteItem('${item.id}')" title="Delete">✕</button>
       </div>
@@ -1344,7 +1344,152 @@ function runDraftFlow(item) {
   }
 }
 
-function openEmailDraft(id) {
+function openProvideUpdate(id) {
+    var item = items.find(function(i) { return i.id === id; });
+    if (!item) return;
+    emailDraftItemId = id;
+    currentEmailItem = item;
+    emailHistory = [];
+    document.getElementById('em-loading').style.display = 'block';
+    document.getElementById('em-form').style.display = 'none';
+    document.getElementById('em-status').textContent = '';
+    document.getElementById('em-modal-title').textContent = 'Provide Update';
+    document.getElementById('em-loading-step').textContent = 'Fetching email history...';
+    document.getElementById('email-modal').classList.add('open');
+    var tok = msToken || sessionStorage.getItem('fu_ms_token');
+    if (tok) { msToken = tok; }
+    if (msToken && (item.contactEmail || item.contact || item.client)) {
+        fetchHistoryAndSummarize(item);
+    } else {
+        fetchHistoryAndSummarize(item);
+    }
+}
+function fetchHistoryAndSummarize(item) {
+    document.getElementById('em-loading-step').textContent = 'Reading email history...';
+    var searchTerm = item.contactEmail || item.contact || item.client;
+    if (!msToken || !searchTerm) {
+        callClaudeSummary(item, []);
+        return;
+    }
+    var headers = { 'Authorization': 'Bearer ' + msToken, 'Prefer': 'outlook.body-content-type="text"' };
+    var sentUrl = 'https://graph.microsoft.com/v1.0/me/mailFolders/SentItems/messages?$search=%22' + encodeURIComponent(searchTerm) + '%22&$top=10&$select=subject,body,receivedDateTime,from,toRecipients';
+    var inboxUrl = 'https://graph.microsoft.com/v1.0/me/mailFolders/Inbox/messages?$search=%22' + encodeURIComponent(searchTerm) + '%22&$top=10&$select=subject,body,receivedDateTime,from,toRecipients';
+    Promise.all([
+        fetch(sentUrl, { headers: headers }).then(function(r){ return r.ok ? r.json() : {value:[]}; }).catch(function(){ return {value:[]}; }),
+        fetch(inboxUrl, { headers: headers }).then(function(r){ return r.ok ? r.json() : {value:[]}; }).catch(function(){ return {value:[]}; })
+    ]).then(function(results) {
+        var sent = (results[0].value || []).map(function(m){ m._dir='sent'; return m; });
+        var received = (results[1].value || []).map(function(m){ m._dir='received'; return m; });
+        var all = sent.concat(received).sort(function(a,b){ return new Date(b.receivedDateTime||0) - new Date(a.receivedDateTime||0); }).slice(0, 20);
+        emailHistory = all;
+        var msg = all.length > 0
+            ? ('Found ' + all.length + ' email' + (all.length > 1 ? 's' : '') + ' \u2014 generating summary...')
+            : 'No emails found \u2014 generating summary from tracker data...';
+        document.getElementById('em-loading-step').textContent = msg;
+        callClaudeSummary(item, all);
+    }).catch(function() { callClaudeSummary(item, []); });
+}
+function callClaudeSummary(item, history) {
+    var claudeApiKey = localStorage.getItem(CLAUDE_KEY) || '';
+    if (!claudeApiKey) {
+        showSummary(item, 'No Claude API key found. Please add your API key in the Outlook setup modal.', history);
+        return;
+    }
+    var cands = (item.candidates && item.candidates.length)
+        ? item.candidates.map(function(c){ return c.name + (c.interviewing ? ' (interviewing)' : ''); }).join(', ')
+        : 'None on file';
+    var historyBlock = history.length > 0
+        ? history.map(function(m, i) {
+            var dir = m._dir === 'sent' ? 'YOU SENT' : 'YOU RECEIVED';
+            var date = m.receivedDateTime ? new Date(m.receivedDateTime).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : 'Unknown date';
+            var from = m._dir === 'sent' ? 'You' : (m.from && m.from.emailAddress ? m.from.emailAddress.name || m.from.emailAddress.address : 'Unknown');
+            var bodyText = (m.body && m.body.content ? m.body.content : '').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim().slice(0, 400);
+            return '[Email ' + (i+1) + '] ' + dir + ' on ' + date + '\nFrom: ' + from + '\nSubject: ' + (m.subject||'(no subject)') + '\nContent: ' + (bodyText||'(no content)') + '\n';
+        }).join('\n---\n')
+        : 'No email history available.';
+    var prompt = 'You are a recruiting assistant. Analyze the following email history and tracker data for a client and provide a clear, concise communication summary.\n\n'
+        + 'TRACKER DATA:\n'
+        + 'Client: ' + (item.client||'') + '\n'
+        + 'Contact: ' + (item.contact||'None') + '\n'
+        + 'Contact Email: ' + (item.contactEmail||'None') + '\n'
+        + 'Follow-up Type: ' + (item.type||'') + '\n'
+        + 'Status: ' + (item.done ? 'Closed' : 'Active') + '\n'
+        + 'Candidates: ' + cands + '\n'
+        + 'Notes: ' + (item.notes||'None') + '\n\n'
+        + 'EMAIL HISTORY (most recent first):\n' + historyBlock + '\n\n'
+        + 'Please provide a structured summary with these exact sections:\n\n'
+        + '## Last Contact\n[Date and brief description of most recent communication]\n\n'
+        + '## Communication Timeline\n[Bullet list of key emails in chronological order, each with date and one-line summary]\n\n'
+        + '## Current Status\n[2-3 sentences on where things stand with this client/role/candidate]\n\n'
+        + '## Key Action Items\n[Bullet list of any pending responses, outstanding questions, or next steps identified from the emails]\n\n'
+        + '## Sentiment\n[One sentence on the overall tone and responsiveness of this client]';
+    document.getElementById('em-loading-step').textContent = 'Claude is analyzing...';
+    fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': claudeApiKey,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 1000,
+            messages: [{ role: 'user', content: prompt }]
+        })
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+        var text = (data.content && data.content[0] && data.content[0].text) ? data.content[0].text : 'Could not generate summary.';
+        showSummary(item, text, history);
+    })
+    .catch(function(e){ showSummary(item, 'Error contacting Claude: ' + e.message, history); });
+}
+function showSummary(item, markdownText, history) {
+    document.getElementById('em-loading').style.display = 'none';
+    document.getElementById('em-form').style.display = 'block';
+    document.getElementById('em-modal-title').textContent = 'Communication Update \u2014 ' + (item.client||'');
+    var sentCount = history.filter(function(m){ return m._dir==='sent'; }).length;
+    var recvCount = history.filter(function(m){ return m._dir==='received'; }).length;
+    var toField = document.getElementById('em-to');
+    var subjectField = document.getElementById('em-subject');
+    var bodyField = document.getElementById('em-body');
+    if (toField) toField.style.display = 'none';
+    if (subjectField) subjectField.style.display = 'none';
+    var labelTo = toField ? toField.previousElementSibling : null;
+    var labelSubject = subjectField ? subjectField.previousElementSibling : null;
+    if (labelTo) labelTo.style.display = 'none';
+    if (labelSubject) labelSubject.style.display = 'none';
+    if (bodyField) {
+        bodyField.style.display = 'none';
+        var summaryDiv = document.getElementById('em-summary-display');
+        if (!summaryDiv) {
+            summaryDiv = document.createElement('div');
+            summaryDiv.id = 'em-summary-display';
+            summaryDiv.style.cssText = 'padding:12px;background:#f8f9ff;border:1px solid var(--border);border-radius:8px;font-size:13px;line-height:1.7;color:var(--text);white-space:pre-wrap;max-height:420px;overflow-y:auto;';
+            bodyField.parentNode.insertBefore(summaryDiv, bodyField);
+        }
+        summaryDiv.style.display = 'block';
+        summaryDiv.textContent = markdownText;
+    }
+    var aiBadge = document.getElementById('em-ai-badge');
+    if (aiBadge) {
+        aiBadge.style.display = 'block';
+        aiBadge.textContent = '\u2728 AI Summary \u2014 ' + sentCount + ' sent, ' + recvCount + ' received emails analyzed';
+    }
+    var saveBtn = document.getElementById('em-save-btn');
+    var copyBtn = document.getElementById('em-copy-btn');
+    if (saveBtn) saveBtn.style.display = 'none';
+    if (copyBtn) {
+        copyBtn.style.display = 'inline-block';
+        copyBtn.onclick = function() {
+            navigator.clipboard.writeText(markdownText).then(function(){
+                showToast('Copied','Summary copied to clipboard.',false,'success');
+            });
+        };
+    }
+}
+  function openEmailDraft(id) {
   console.log('Step 1: openEmailDraft called, id=', id);
   var item = items.find(function(i) { return i.id === id; });
   if (!item) { console.log('ERROR item not found'); return; }
@@ -1375,8 +1520,8 @@ function fetchHistoryAndGenerate(item) {
   document.getElementById('em-loading-step').textContent = 'Reading your email history with this contact...';
   var searchTerm = item.contactEmail || item.contact || item.client;
   var headers = { 'Authorization': 'Bearer ' + msToken, 'Prefer': 'outlook.body-content-type="text"' };
-  var sentUrl  = 'https://graph.microsoft.com/v1.0/me/mailFolders/SentItems/messages?$search=%22' + encodeURIComponent(searchTerm) + '%22&$top=6&$select=subject,body,receivedDateTime,from,toRecipients';
-  var inboxUrl = 'https://graph.microsoft.com/v1.0/me/mailFolders/Inbox/messages?$search=%22'     + encodeURIComponent(searchTerm) + '%22&$top=6&$select=subject,body,receivedDateTime,from,toRecipients';
+  var sentUrl  = 'https://graph.microsoft.com/v1.0/me/mailFolders/SentItems/messages?$search=%22' + encodeURIComponent(searchTerm) + '%22&$top=10&$select=subject,body,receivedDateTime,from,toRecipients';
+  var inboxUrl = 'https://graph.microsoft.com/v1.0/me/mailFolders/Inbox/messages?$search=%22'     + encodeURIComponent(searchTerm) + '%22&$top=10&$select=subject,body,receivedDateTime,from,toRecipients';
   console.log('Step 3: fetching sent + inbox for:', searchTerm);
   Promise.all([
     fetch(sentUrl,  { headers: headers }).then(function(r){ return r.ok ? r.json() : {value:[]}; }).catch(function(){ return {value:[]}; }),
@@ -1386,7 +1531,7 @@ function fetchHistoryAndGenerate(item) {
     var received = (results[1].value || []).map(function(m){ m._dir='received'; return m; });
     var all = sent.concat(received).sort(function(a,b){
       return new Date(b.receivedDateTime||0) - new Date(a.receivedDateTime||0);
-    }).slice(0, 5);
+    }).slice(0, 20);
     emailHistory = all;
     console.log('Step 4: got', sent.length, 'sent,', received.length, 'received, using', all.length);
     var msg = all.length > 0
@@ -1495,14 +1640,24 @@ function callClaude(item, history) {
 }
 
 function showDraft(item, body, subject, history) {
-  console.log('Step 7: displaying AI draft, historyUsed=', history ? history.length : 0);
-  document.getElementById('em-loading').style.display = 'none';
-  document.getElementById('em-form').style.display = 'block';
-  document.getElementById('em-modal-title').textContent = 'Draft Email';
-  document.getElementById('em-to').value = item.contactEmail || '';
-  document.getElementById('em-subject').value = subject;
-  document.getElementById('em-body').value = body;
-  setSendBtn();
+    document.getElementById('em-loading').style.display = 'none';
+    document.getElementById('em-form').style.display = 'block';
+    document.getElementById('em-modal-title').textContent = 'Draft Email';
+    var toField = document.getElementById('em-to');
+    var subjectField = document.getElementById('em-subject');
+    var bodyField = document.getElementById('em-body');
+    var summaryDiv = document.getElementById('em-summary-display');
+    if (toField) { toField.style.display = ''; toField.value = item.contactEmail || ''; }
+    if (subjectField) { subjectField.style.display = ''; subjectField.value = subject; }
+    if (bodyField) { bodyField.style.display = ''; bodyField.value = body; }
+    if (summaryDiv) summaryDiv.style.display = 'none';
+    var labelTo = toField ? toField.previousElementSibling : null;
+    var labelSubject = subjectField ? subjectField.previousElementSibling : null;
+    if (labelTo) labelTo.style.display = '';
+    if (labelSubject) labelSubject.style.display = '';
+    var saveBtn = document.getElementById('em-save-btn');
+    if (saveBtn) saveBtn.style.display = '';
+    setSendBtn();
   var badge = document.getElementById('em-ai-badge');
   if (history && history.length > 0) {
     var sentCount     = history.filter(function(m){ return m._dir==='sent';     }).length;
